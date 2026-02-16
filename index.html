@@ -215,6 +215,7 @@
         </div>
     </div>
 
+    <!-- User Modal -->
     <div id="userModal" class="modal">
         <div class="modal-content">
             <h3>Nuevo Usuario</h3>
@@ -248,6 +249,7 @@
         </div>
     </div>
 
+    <!-- Lead Modal -->
     <div id="leadModal" class="modal">
         <div class="modal-content">
             <h3>Nuevo Lead</h3>
@@ -278,6 +280,7 @@
         </div>
     </div>
 
+    <!-- Task Modal -->
     <div id="taskModal" class="modal">
         <div class="modal-content">
             <h3>Nueva Tarea</h3>
@@ -306,6 +309,7 @@
         let leads = [];
         let tasks = [];
 
+        // Login
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('username').value;
@@ -431,6 +435,7 @@
             document.getElementById(id).classList.remove('active');
         }
 
+        // User Form
         document.getElementById('userForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             try {
@@ -450,6 +455,7 @@
             }
         });
 
+        // Lead Form
         document.getElementById('leadForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             try {
@@ -469,6 +475,7 @@
             }
         });
 
+        // Task Form
         document.getElementById('taskForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             try {
