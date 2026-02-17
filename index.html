@@ -429,8 +429,8 @@
 
     <script>
         (function() {
-            const SUPABASE_URL = 'https://urvuifvogigowuzchcls.supabase.co';
-            const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVydnVpZnZvZ2lnb3d1emNoY2xzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc3NDQ2ODksImV4cCI6MjA1MzMyMDY4OX0.O_vqvIymqGNFQOKhMTxr2c8rK6-uDJqVJK5BUITlmPc';
+            const SUPABASE_URL = 'https://ibqdtawlbkprcqkxwybk.supabase.co';
+            const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlicWR0YXdsYmtwcmNxa3h3eWJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNTg4MTUsImV4cCI6MjA4NjgzNDgxNX0.xL5NPuxiPtWyv7ExQ6a81kwPgtXVI5HDl85GmFSAUOg';
             const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
             let currentUser = null;
@@ -444,9 +444,19 @@
                 const username = document.getElementById('username').value;
                 const password = document.getElementById('password').value;
 
+                // Mostrar mensaje de carga
+                document.getElementById('loginAlert').innerHTML = '<div class="alert alert-info">Conectando...</div>';
+
                 try {
+                    console.log('Intentando conectar a Supabase...');
                     const { data, error } = await db.from('users').select('*');
-                    if (error) throw error;
+                    
+                    if (error) {
+                        console.error('Error de Supabase:', error);
+                        throw error;
+                    }
+
+                    console.log('Datos recibidos:', data);
 
                     const user = data.find(u => u.username === username && u.password === password);
                     if (user) {
@@ -456,8 +466,18 @@
                         document.getElementById('loginAlert').innerHTML = '<div class="alert alert-error">Usuario o contraseña incorrectos</div>';
                     }
                 } catch (error) {
-                    console.error(error);
-                    document.getElementById('loginAlert').innerHTML = '<div class="alert alert-error">Error: ' + error.message + '</div>';
+                    console.error('Error completo:', error);
+                    let errorMessage = 'Error de conexión. ';
+                    
+                    if (error.message.includes('fetch')) {
+                        errorMessage += 'No se puede conectar con la base de datos. Verifica tu conexión a internet.';
+                    } else if (error.message.includes('CORS')) {
+                        errorMessage += 'Error de permisos (CORS). Contacta al administrador.';
+                    } else {
+                        errorMessage += error.message;
+                    }
+                    
+                    document.getElementById('loginAlert').innerHTML = `<div class="alert alert-error">${errorMessage}</div>`;
                 }
             });
 
@@ -600,9 +620,16 @@
 
                         processExcelData(jsonData);
                     } catch (error) {
+                        console.error('Error completo:', error);
                         document.getElementById('importAlert').innerHTML = 
                             '<div class="alert alert-error">Error al leer el archivo: ' + error.message + '</div>';
                     }
+                };
+
+                reader.onerror = function(error) {
+                    console.error('Error al leer archivo:', error);
+                    document.getElementById('importAlert').innerHTML = 
+                        '<div class="alert alert-error">Error al cargar el archivo</div>';
                 };
 
                 reader.readAsArrayBuffer(file);
