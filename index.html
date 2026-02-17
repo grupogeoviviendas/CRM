@@ -390,6 +390,13 @@
                 </ul>
             </div>
 
+            <div class="form-group" id="userSelectorGroup" style="display: none; margin-bottom: 20px;">
+                <label>Asignar leads a:</label>
+                <select id="assignToUser" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <option value="">-- Seleccionar Usuario --</option>
+                </select>
+            </div>
+
             <div class="file-input-wrapper">
                 <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" onchange="handleFileSelect(event)">
                 <label for="excelFile" class="file-input-label">
@@ -585,7 +592,27 @@
                 document.getElementById('previewSection').style.display = 'none';
                 document.getElementById('excelFile').value = '';
                 document.getElementById('importAlert').innerHTML = '';
+                
+                // Mostrar selector de usuario solo para admins
+                if (currentUser.role === 'admin') {
+                    document.getElementById('userSelectorGroup').style.display = 'block';
+                    loadUsersForAssignment();
+                } else {
+                    document.getElementById('userSelectorGroup').style.display = 'none';
+                }
             };
+
+            function loadUsersForAssignment() {
+                const select = document.getElementById('assignToUser');
+                select.innerHTML = '<option value="">-- Seleccionar Usuario --</option>';
+                select.innerHTML += '<option value="' + currentUser.id + '">Asignar a mí (' + currentUser.fullname + ')</option>';
+                
+                users.forEach(user => {
+                    if (user.id !== currentUser.id) {
+                        select.innerHTML += '<option value="' + user.id + '">' + user.fullname + ' (' + user.username + ')</option>';
+                    }
+                });
+            }
 
             window.closeModal = function(id) {
                 document.getElementById(id).classList.remove('active');
@@ -735,6 +762,17 @@
                     return;
                 }
 
+                // Verificar que se haya seleccionado un usuario (solo para admins)
+                let assignedUserId = currentUser.id;
+                if (currentUser.role === 'admin') {
+                    const selectedUserId = document.getElementById('assignToUser').value;
+                    if (!selectedUserId) {
+                        alert('Por favor selecciona un usuario para asignar los leads');
+                        return;
+                    }
+                    assignedUserId = parseInt(selectedUserId);
+                }
+
                 if (!confirm(`¿Deseas importar ${validLeads.length} leads?`)) {
                     return;
                 }
@@ -746,15 +784,19 @@
                         email: lead.email.toString().trim(),
                         phone: lead.phone ? lead.phone.toString().trim() : null,
                         status: lead.status,
-                        assigned_to: currentUser.id
+                        assigned_to: assignedUserId
                     }));
 
                     const { data, error } = await db.from('leads').insert(leadsToInsert);
                     
                     if (error) throw error;
 
+                    const assignedUserName = currentUser.role === 'admin' && assignedUserId !== currentUser.id 
+                        ? users.find(u => u.id === assignedUserId).fullname 
+                        : 'ti';
+
                     document.getElementById('importAlert').innerHTML = 
-                        `<div class="alert alert-success">✅ Se importaron exitosamente ${validLeads.length} leads</div>`;
+                        `<div class="alert alert-success">✅ Se importaron exitosamente ${validLeads.length} leads${currentUser.role === 'admin' && assignedUserId !== currentUser.id ? ' asignados a ' + assignedUserName : ''}</div>`;
                     
                     await loadData();
                     
