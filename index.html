@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CRM Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Librería para leer archivos Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -99,6 +101,7 @@
             background: rgba(0,0,0,0.5);
             align-items: center;
             justify-content: center;
+            z-index: 1000;
         }
         .modal.active { display: flex; }
         .modal-content {
@@ -106,12 +109,82 @@
             padding: 30px;
             border-radius: 10px;
             width: 90%;
-            max-width: 500px;
+            max-width: 800px;
             max-height: 80vh;
             overflow-y: auto;
         }
         .alert { padding: 10px; margin: 10px 0; border-radius: 5px; }
         .alert-error { background: #fee; color: #c00; border: 1px solid #fcc; }
+        .alert-success { background: #efe; color: #070; border: 1px solid #cfc; }
+        .alert-info { background: #eef; color: #007; border: 1px solid #ccf; }
+        
+        /* Estilos para importación de Excel */
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .btn-secondary {
+            background: #28a745;
+        }
+        .btn-secondary:hover {
+            background: #218838;
+        }
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+        .file-input-label {
+            display: inline-block;
+            padding: 12px 20px;
+            background: #28a745;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .file-input-label:hover {
+            background: #218838;
+        }
+        .preview-table {
+            margin: 20px 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .preview-table table {
+            font-size: 14px;
+        }
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-valid { background: #d4edda; color: #155724; }
+        .status-invalid { background: #f8d7da; color: #721c24; }
+        .import-instructions {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            border-left: 4px solid #667eea;
+        }
+        .import-instructions h4 {
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+        .import-instructions ul {
+            margin-left: 20px;
+        }
+        .import-instructions li {
+            margin: 5px 0;
+        }
     </style>
 </head>
 <body>
@@ -183,7 +256,10 @@
 
         <div id="leads" class="view">
             <h3>Leads</h3>
-            <button onclick="openLeadModal()" style="margin: 20px 0;">+ Nuevo Lead</button>
+            <div class="button-group">
+                <button onclick="openLeadModal()">+ Nuevo Lead</button>
+                <button onclick="openImportModal()" class="btn-secondary">📊 Importar desde Excel</button>
+            </div>
             <table>
                 <thead>
                     <tr>
@@ -215,6 +291,7 @@
         </div>
     </div>
 
+    <!-- Modal Usuario -->
     <div id="userModal" class="modal">
         <div class="modal-content">
             <h3>Nuevo Usuario</h3>
@@ -237,17 +314,18 @@
                 </div>
                 <div class="form-group">
                     <label>Rol</label>
-                    <select id="newRole" style="width: 100%; padding: 10px;">
-                        <option value="user">Usuario</option>
+                    <select id="newRole" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                        <option value="usuario">Usuario</option>
                         <option value="admin">Admin</option>
                     </select>
                 </div>
                 <button type="submit">Crear</button>
-                <button type="button" onclick="closeModal('userModal')" style="margin-top: 10px; background: #999;">Cancelar</button>
+                <button type="button" onclick="closeModal('userModal')" style="background: #ccc; margin-top: 10px;">Cancelar</button>
             </form>
         </div>
     </div>
 
+    <!-- Modal Lead -->
     <div id="leadModal" class="modal">
         <div class="modal-content">
             <h3>Nuevo Lead</h3>
@@ -266,18 +344,19 @@
                 </div>
                 <div class="form-group">
                     <label>Estado</label>
-                    <select id="leadStatus" style="width: 100%; padding: 10px;">
+                    <select id="leadStatus" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
                         <option value="nuevo">Nuevo</option>
                         <option value="contactado">Contactado</option>
                         <option value="calificado">Calificado</option>
                     </select>
                 </div>
                 <button type="submit">Crear</button>
-                <button type="button" onclick="closeModal('leadModal')" style="margin-top: 10px; background: #999;">Cancelar</button>
+                <button type="button" onclick="closeModal('leadModal')" style="background: #ccc; margin-top: 10px;">Cancelar</button>
             </form>
         </div>
     </div>
 
+    <!-- Modal Tarea -->
     <div id="taskModal" class="modal">
         <div class="modal-content">
             <h3>Nueva Tarea</h3>
@@ -288,25 +367,77 @@
                 </div>
                 <div class="form-group">
                     <label>Descripción</label>
-                    <textarea id="taskDesc" style="width: 100%; padding: 10px; min-height: 80px;"></textarea>
+                    <textarea id="taskDesc" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; min-height: 100px;"></textarea>
                 </div>
                 <button type="submit">Crear</button>
-                <button type="button" onclick="closeModal('taskModal')" style="margin-top: 10px; background: #999;">Cancelar</button>
+                <button type="button" onclick="closeModal('taskModal')" style="background: #ccc; margin-top: 10px;">Cancelar</button>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal Importar Excel -->
+    <div id="importModal" class="modal">
+        <div class="modal-content">
+            <h3>📊 Importar Leads desde Excel</h3>
+            
+            <div class="import-instructions">
+                <h4>📋 Instrucciones:</h4>
+                <ul>
+                    <li>El archivo debe tener las columnas: <strong>Nombre, Email, Teléfono, Estado</strong></li>
+                    <li>Los estados válidos son: <strong>nuevo, contactado, calificado</strong></li>
+                    <li>Formatos aceptados: <strong>.xlsx, .xls, .csv</strong></li>
+                    <li>La primera fila debe contener los nombres de las columnas</li>
+                </ul>
+            </div>
+
+            <div class="file-input-wrapper">
+                <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" onchange="handleFileSelect(event)">
+                <label for="excelFile" class="file-input-label">
+                    📁 Seleccionar Archivo Excel
+                </label>
+            </div>
+
+            <div id="importAlert"></div>
+            
+            <div id="previewSection" style="display: none;">
+                <h4 style="margin: 20px 0 10px 0;">Vista Previa de Datos:</h4>
+                <div class="preview-table">
+                    <table id="previewTable">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Email</th>
+                                <th>Teléfono</th>
+                                <th>Estado</th>
+                                <th>Válido</th>
+                            </tr>
+                        </thead>
+                        <tbody id="previewTableBody"></tbody>
+                    </table>
+                </div>
+                <div style="margin: 20px 0;">
+                    <p><strong>Total de registros:</strong> <span id="totalRecords">0</span></p>
+                    <p><strong>Registros válidos:</strong> <span id="validRecords" style="color: green;">0</span></p>
+                    <p><strong>Registros inválidos:</strong> <span id="invalidRecords" style="color: red;">0</span></p>
+                </div>
+                <button onclick="importLeads()" style="background: #28a745;">✅ Importar Leads Válidos</button>
+            </div>
+
+            <button type="button" onclick="closeImportModal()" style="background: #ccc; margin-top: 10px;">Cerrar</button>
         </div>
     </div>
 
     <script>
         (function() {
-            const db = window.supabase.createClient(
-                'https://ibqdtawlbkprcqkxwybk.supabase.co',
-                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlicWR0YXdsYmtwcmNxa3h3eWJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNTg4MTUsImV4cCI6MjA4NjgzNDgxNX0.xL5NPuxiPtWyv7ExQ6a81kwPgtXVI5HDl85GmFSAUOg'
-            );
+            const SUPABASE_URL = 'https://urvuifvogigowuzchcls.supabase.co';
+            const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVydnVpZnZvZ2lnb3d1emNoY2xzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc3NDQ2ODksImV4cCI6MjA1MzMyMDY4OX0.O_vqvIymqGNFQOKhMTxr2c8rK6-uDJqVJK5BUITlmPc';
+            const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
             let currentUser = null;
             let users = [];
             let leads = [];
             let tasks = [];
+            let previewData = [];
 
             document.getElementById('loginForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -429,8 +560,186 @@
                 document.getElementById('taskModal').classList.add('active');
             };
 
+            window.openImportModal = function() {
+                document.getElementById('importModal').classList.add('active');
+                document.getElementById('previewSection').style.display = 'none';
+                document.getElementById('excelFile').value = '';
+                document.getElementById('importAlert').innerHTML = '';
+            };
+
             window.closeModal = function(id) {
                 document.getElementById(id).classList.remove('active');
+            };
+
+            window.closeImportModal = function() {
+                document.getElementById('importModal').classList.remove('active');
+                previewData = [];
+            };
+
+            // Función para manejar la selección de archivo
+            window.handleFileSelect = function(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        // Leer la primera hoja
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                        
+                        if (jsonData.length === 0) {
+                            document.getElementById('importAlert').innerHTML = 
+                                '<div class="alert alert-error">El archivo está vacío o no tiene el formato correcto</div>';
+                            return;
+                        }
+
+                        processExcelData(jsonData);
+                    } catch (error) {
+                        document.getElementById('importAlert').innerHTML = 
+                            '<div class="alert alert-error">Error al leer el archivo: ' + error.message + '</div>';
+                    }
+                };
+
+                reader.readAsArrayBuffer(file);
+            };
+
+            // Función para procesar los datos del Excel
+            function processExcelData(data) {
+                previewData = [];
+                let validCount = 0;
+                let invalidCount = 0;
+
+                data.forEach((row, index) => {
+                    // Normalizar nombres de columnas (trimear espacios y convertir a minúsculas)
+                    const normalizedRow = {};
+                    Object.keys(row).forEach(key => {
+                        normalizedRow[key.trim().toLowerCase()] = row[key];
+                    });
+
+                    const lead = {
+                        name: normalizedRow.nombre || normalizedRow.name || '',
+                        email: normalizedRow.email || normalizedRow.correo || '',
+                        phone: normalizedRow.teléfono || normalizedRow.telefono || normalizedRow.phone || '',
+                        status: (normalizedRow.estado || normalizedRow.status || '').toLowerCase(),
+                        valid: true,
+                        errors: []
+                    };
+
+                    // Validar datos
+                    if (!lead.name || lead.name.toString().trim() === '') {
+                        lead.valid = false;
+                        lead.errors.push('Nombre vacío');
+                    }
+
+                    if (!lead.email || lead.email.toString().trim() === '') {
+                        lead.valid = false;
+                        lead.errors.push('Email vacío');
+                    } else if (!isValidEmail(lead.email)) {
+                        lead.valid = false;
+                        lead.errors.push('Email inválido');
+                    }
+
+                    const validStatuses = ['nuevo', 'contactado', 'calificado'];
+                    if (!lead.status || !validStatuses.includes(lead.status)) {
+                        lead.status = 'nuevo'; // Valor por defecto
+                    }
+
+                    if (lead.valid) {
+                        validCount++;
+                    } else {
+                        invalidCount++;
+                    }
+
+                    previewData.push(lead);
+                });
+
+                displayPreview(validCount, invalidCount);
+            }
+
+            // Función para validar email
+            function isValidEmail(email) {
+                const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return re.test(String(email).toLowerCase());
+            }
+
+            // Función para mostrar la vista previa
+            function displayPreview(validCount, invalidCount) {
+                const tbody = document.getElementById('previewTableBody');
+                tbody.innerHTML = previewData.map((lead, index) => `
+                    <tr style="${!lead.valid ? 'background-color: #fff3cd;' : ''}">
+                        <td>${lead.name}</td>
+                        <td>${lead.email}</td>
+                        <td>${lead.phone || '-'}</td>
+                        <td>${lead.status}</td>
+                        <td>
+                            <span class="status-badge ${lead.valid ? 'status-valid' : 'status-invalid'}">
+                                ${lead.valid ? '✓ Válido' : '✗ ' + lead.errors.join(', ')}
+                            </span>
+                        </td>
+                    </tr>
+                `).join('');
+
+                document.getElementById('totalRecords').textContent = previewData.length;
+                document.getElementById('validRecords').textContent = validCount;
+                document.getElementById('invalidRecords').textContent = invalidCount;
+
+                document.getElementById('previewSection').style.display = 'block';
+
+                if (validCount === 0) {
+                    document.getElementById('importAlert').innerHTML = 
+                        '<div class="alert alert-error">No hay registros válidos para importar</div>';
+                } else {
+                    document.getElementById('importAlert').innerHTML = 
+                        `<div class="alert alert-success">Se encontraron ${validCount} registros válidos listos para importar</div>`;
+                }
+            }
+
+            // Función para importar los leads
+            window.importLeads = async function() {
+                const validLeads = previewData.filter(lead => lead.valid);
+                
+                if (validLeads.length === 0) {
+                    alert('No hay leads válidos para importar');
+                    return;
+                }
+
+                if (!confirm(`¿Deseas importar ${validLeads.length} leads?`)) {
+                    return;
+                }
+
+                try {
+                    // Preparar datos para inserción
+                    const leadsToInsert = validLeads.map(lead => ({
+                        name: lead.name.toString().trim(),
+                        email: lead.email.toString().trim(),
+                        phone: lead.phone ? lead.phone.toString().trim() : null,
+                        status: lead.status,
+                        assigned_to: currentUser.id
+                    }));
+
+                    const { data, error } = await db.from('leads').insert(leadsToInsert);
+                    
+                    if (error) throw error;
+
+                    document.getElementById('importAlert').innerHTML = 
+                        `<div class="alert alert-success">✅ Se importaron exitosamente ${validLeads.length} leads</div>`;
+                    
+                    await loadData();
+                    
+                    setTimeout(() => {
+                        closeImportModal();
+                    }, 2000);
+
+                } catch (error) {
+                    console.error('Error importing leads:', error);
+                    document.getElementById('importAlert').innerHTML = 
+                        '<div class="alert alert-error">Error al importar: ' + error.message + '</div>';
+                }
             };
 
             document.getElementById('userForm').addEventListener('submit', async (e) => {
