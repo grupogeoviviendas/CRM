@@ -1,8 +1,827 @@
-ALTER TABLE leads 
-  ADD COLUMN IF NOT EXISTS fecha TEXT,
-  ADD COLUMN IF NOT EXISTS origen TEXT,
-  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP;
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+        }
+        h1 { text-align: center; color: #333; margin-bottom: 30px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; color: #555; font-weight: bold; }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover { background: #5568d3; }
+        .app { display: none; }
+        .app.active { display: block; }
+        .header {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .nav { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .nav button {
+            flex: 1;
+            min-width: 150px;
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+        .nav button.active { background: #667eea; color: white; }
+        .view { display: none; background: white; padding: 20px; border-radius: 10px; }
+        .view.active { display: block; }
+        .table-wrapper { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 900px; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #ddd; font-size: 13px; }
+        th { background: #f5f5f5; font-weight: bold; white-space: nowrap; }
+        .btn-small {
+            width: auto;
+            padding: 5px 10px;
+            font-size: 12px;
+            margin: 0 2px;
+        }
+        .btn-edit { background: #ffc107; color: #333; }
+        .btn-edit:hover { background: #e0a800; }
+        .btn-delete { background: #dc3545; }
+        .btn-delete:hover { background: #c82333; }
+        .btn-green { background: #28a745; }
+        .btn-green:hover { background: #218838; }
+        .btn-gray { background: #ccc; color: #333; }
+        .btn-gray:hover { background: #bbb; }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat-value { font-size: 36px; font-weight: bold; color: #667eea; }
+        .stat-label { color: #888; margin-top: 5px; }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 700px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        .modal-content h3 { margin-bottom: 20px; color: #333; }
+        .alert { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .alert-error { background: #fee; color: #c00; border: 1px solid #fcc; }
+        .alert-success { background: #efe; color: #070; border: 1px solid #cfc; }
+        .alert-info { background: #eef; color: #007; border: 1px solid #ccf; }
+        .button-group { display: flex; gap: 10px; margin: 20px 0; flex-wrap: wrap; }
+        .status-badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        .status-nuevo { background: #cce5ff; color: #004085; }
+        .status-contactado { background: #fff3cd; color: #856404; }
+        .status-calificado { background: #d4edda; color: #155724; }
+        .status-descartado { background: #f8d7da; color: #721c24; }
+        .status-valid { background: #d4edda; color: #155724; }
+        .status-invalid { background: #f8d7da; color: #721c24; }
+        .timestamp { font-size: 11px; color: #888; white-space: nowrap; }
+        .file-input-wrapper input[type=file] { position: absolute; left: -9999px; }
+        .file-input-label {
+            display: inline-block;
+            padding: 12px 20px;
+            background: #28a745;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 15px;
+        }
+        .file-input-label:hover { background: #218838; }
+        .preview-table { margin: 15px 0; max-height: 300px; overflow-y: auto; }
+        .preview-table table { font-size: 12px; min-width: 500px; }
+        .import-instructions {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            border-left: 4px solid #667eea;
+            font-size: 13px;
+        }
+        .import-instructions h4 { margin-bottom: 8px; color: #667eea; }
+        .import-instructions li { margin: 4px 0 4px 20px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
 
-ALTER TABLE leads DROP COLUMN IF EXISTS email;
+<!-- Login -->
+<div id="loginScreen" class="login-container">
+    <h1>🎯 CRM Pro</h1>
+    <div id="loginAlert"></div>
+    <form id="loginForm">
+        <div class="form-group">
+            <label>Usuario</label>
+            <input type="text" id="username" placeholder="Ingresa tu usuario" required>
+        </div>
+        <div class="form-group">
+            <label>Contraseña</label>
+            <input type="password" id="password" placeholder="Ingresa tu contraseña" required>
+        </div>
+        <button type="submit">Iniciar Sesión</button>
+    </form>
+</div>
 
-UPDATE leads SET updated_at = created_at WHERE updated_at IS NULL;
+<!-- App Principal -->
+<div id="app" class="app" style="padding: 20px; width: 100%;">
+    <div class="header">
+        <div>
+            <h2>🎯 CRM Pro</h2>
+            <small id="userInfo"></small>
+        </div>
+        <button onclick="logout()" class="btn-small btn-delete">Salir</button>
+    </div>
+
+    <div class="nav">
+        <button onclick="changeView('dashboard', this)" class="active">Dashboard</button>
+        <button onclick="changeView('users', this)" id="usersBtn">Usuarios</button>
+        <button onclick="changeView('leads', this)">Leads</button>
+        <button onclick="changeView('tasks', this)">Tareas</button>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="dashboard" class="view active">
+        <div class="stat-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalUsers">0</div>
+                <div class="stat-label">Usuarios</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalLeads">0</div>
+                <div class="stat-label">Leads</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalTasks">0</div>
+                <div class="stat-label">Tareas</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Usuarios -->
+    <div id="users" class="view">
+        <h3>Gestión de Usuarios</h3>
+        <div class="button-group">
+            <button onclick="openUserModal()" style="width:auto; padding: 10px 20px;">+ Nuevo Usuario</button>
+        </div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Usuario</th><th>Nombre</th><th>Email</th><th>Rol</th><th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Leads -->
+    <div id="leads" class="view">
+        <h3>Leads</h3>
+        <div class="button-group">
+            <button onclick="openLeadModal()" style="width:auto; padding: 10px 20px;">+ Nuevo Lead</button>
+            <button onclick="openImportModal()" class="btn-green" style="width:auto; padding: 10px 20px;">📊 Importar desde Excel</button>
+        </div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Nombre</th>
+                        <th>Teléfono</th>
+                        <th>Origen</th>
+                        <th>Estado</th>
+                        <th>Asignado a</th>
+                        <th>Cargado</th>
+                        <th>Modificado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="leadsTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Tareas -->
+    <div id="tasks" class="view">
+        <h3>Tareas</h3>
+        <div class="button-group">
+            <button onclick="openTaskModal()" style="width:auto; padding: 10px 20px;">+ Nueva Tarea</button>
+        </div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr><th>Título</th><th>Descripción</th><th>Estado</th><th>Acciones</th></tr>
+                </thead>
+                <tbody id="tasksTable"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Usuario -->
+<div id="userModal" class="modal">
+    <div class="modal-content">
+        <h3>Nuevo Usuario</h3>
+        <form id="userForm">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Usuario</label>
+                    <input type="text" id="newUsername" required>
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="newPassword" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Nombre Completo</label>
+                    <input type="text" id="newFullname" required>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="newEmail">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Rol</label>
+                <select id="newRole">
+                    <option value="usuario">Usuario</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <div class="button-group">
+                <button type="submit">Crear Usuario</button>
+                <button type="button" onclick="closeModal('userModal')" class="btn-gray">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Lead -->
+<div id="leadModal" class="modal">
+    <div class="modal-content">
+        <h3 id="leadModalTitle">Nuevo Lead</h3>
+        <form id="leadForm">
+            <input type="hidden" id="leadId">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Fecha</label>
+                    <input type="date" id="leadFecha" required>
+                </div>
+                <div class="form-group">
+                    <label>Nombre</label>
+                    <input type="text" id="leadName" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Número de Teléfono</label>
+                    <input type="tel" id="leadPhone" required>
+                </div>
+                <div class="form-group">
+                    <label>Origen</label>
+                    <select id="leadOrigen">
+                        <option value="Facebook">Facebook</option>
+                        <option value="Instagram">Instagram</option>
+                        <option value="WhatsApp">WhatsApp</option>
+                        <option value="Referido">Referido</option>
+                        <option value="Web">Web</option>
+                        <option value="Portal Inmobiliario">Portal Inmobiliario</option>
+                        <option value="Llamada">Llamada</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Estado del Lead</label>
+                    <select id="leadStatus">
+                        <option value="nuevo">Nuevo</option>
+                        <option value="contactado">Contactado</option>
+                        <option value="calificado">Calificado</option>
+                        <option value="descartado">Descartado</option>
+                    </select>
+                </div>
+                <div class="form-group" id="leadUserSelectorGroup" style="display:none;">
+                    <label>Asignar a</label>
+                    <select id="leadAssignToUser">
+                        <option value="">-- Seleccionar Usuario --</option>
+                    </select>
+                </div>
+            </div>
+            <div class="button-group">
+                <button type="submit">Guardar Lead</button>
+                <button type="button" onclick="closeModal('leadModal')" class="btn-gray">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Tarea -->
+<div id="taskModal" class="modal">
+    <div class="modal-content">
+        <h3>Nueva Tarea</h3>
+        <form id="taskForm">
+            <div class="form-group">
+                <label>Título</label>
+                <input type="text" id="taskTitle" required>
+            </div>
+            <div class="form-group">
+                <label>Descripción</label>
+                <textarea id="taskDesc" style="min-height: 80px;"></textarea>
+            </div>
+            <div class="button-group">
+                <button type="submit">Crear Tarea</button>
+                <button type="button" onclick="closeModal('taskModal')" class="btn-gray">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Importar Excel -->
+<div id="importModal" class="modal">
+    <div class="modal-content">
+        <h3>📊 Importar Leads desde Excel</h3>
+        <div class="import-instructions">
+            <h4>📋 Formato requerido del Excel:</h4>
+            <ul>
+                <li><strong>Fecha</strong> (ej: 17/02/2026)</li>
+                <li><strong>Nombre</strong></li>
+                <li><strong>Teléfono</strong></li>
+                <li><strong>Origen</strong> (Facebook, Instagram, WhatsApp, Referido, Web, Portal Inmobiliario, Llamada, Otro)</li>
+                <li><strong>Estado</strong> (nuevo, contactado, calificado, descartado)</li>
+            </ul>
+        </div>
+
+        <div class="form-group" id="importUserSelectorGroup" style="display:none; margin-bottom: 15px;">
+            <label>Asignar leads a:</label>
+            <select id="importAssignToUser">
+                <option value="">-- Seleccionar Usuario --</option>
+            </select>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <div class="file-input-wrapper">
+                <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" onchange="handleFileSelect(event)">
+                <label for="excelFile" class="file-input-label">📁 Seleccionar Archivo Excel</label>
+            </div>
+        </div>
+
+        <div id="importAlert"></div>
+
+        <div id="previewSection" style="display:none;">
+            <h4 style="margin: 15px 0 10px 0;">Vista Previa:</h4>
+            <div class="preview-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha</th><th>Nombre</th><th>Teléfono</th>
+                            <th>Origen</th><th>Estado</th><th>Válido</th>
+                        </tr>
+                    </thead>
+                    <tbody id="previewTableBody"></tbody>
+                </table>
+            </div>
+            <div style="margin: 15px 0; font-size: 14px;">
+                <strong>Total:</strong> <span id="totalRecords">0</span> &nbsp;|&nbsp;
+                <strong style="color:green;">Válidos:</strong> <span id="validRecords">0</span> &nbsp;|&nbsp;
+                <strong style="color:red;">Inválidos:</strong> <span id="invalidRecords">0</span>
+            </div>
+            <button onclick="importLeads()" class="btn-green" style="width:auto; padding: 10px 20px;">✅ Importar Leads Válidos</button>
+        </div>
+
+        <div style="margin-top: 15px;">
+            <button type="button" onclick="closeImportModal()" class="btn-gray">Cerrar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const SUPABASE_URL = 'https://ibqdtawlbkprcqkxwybk.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlicWR0YXdsYmtwcmNxa3h3eWJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNTg4MTUsImV4cCI6MjA4NjgzNDgxNX0.xL5NPuxiPtWyv7ExQ6a81kwPgtXVI5HDl85GmFSAUOg';
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentUser = null;
+    let users = [], leads = [], tasks = [];
+    let previewData = [];
+
+    // ── LOGIN ──────────────────────────────────────────────────
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        document.getElementById('loginAlert').innerHTML = '<div class="alert alert-info">Conectando...</div>';
+        try {
+            const { data, error } = await db.from('users').select('*');
+            if (error) throw error;
+            const user = data.find(u =>
+                u.username === document.getElementById('username').value &&
+                u.password === document.getElementById('password').value
+            );
+            if (user) { currentUser = user; showApp(); }
+            else document.getElementById('loginAlert').innerHTML = '<div class="alert alert-error">Usuario o contraseña incorrectos</div>';
+        } catch (err) {
+            document.getElementById('loginAlert').innerHTML = `<div class="alert alert-error">Error: ${err.message}</div>`;
+        }
+    });
+
+    async function showApp() {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('app').classList.add('active');
+        document.getElementById('userInfo').textContent = `${currentUser.fullname} (${currentUser.role})`;
+        if (currentUser.role !== 'admin') document.getElementById('usersBtn').style.display = 'none';
+        await loadData();
+    }
+
+    // ── CARGA DE DATOS ─────────────────────────────────────────
+    async function loadData() {
+        try {
+            const [ur, lr, tr] = await Promise.all([
+                db.from('users').select('*'),
+                db.from('leads').select('*').order('created_at', { ascending: false }),
+                db.from('tasks').select('*')
+            ]);
+            users = ur.data || [];
+            leads = lr.data || [];
+            tasks = tr.data || [];
+            updateStats(); renderUsers(); renderLeads(); renderTasks();
+        } catch (err) { console.error(err); }
+    }
+
+    function updateStats() {
+        document.getElementById('totalUsers').textContent = users.length;
+        document.getElementById('totalLeads').textContent = leads.length;
+        document.getElementById('totalTasks').textContent = tasks.length;
+    }
+
+    // ── RENDER ─────────────────────────────────────────────────
+    function renderUsers() {
+        document.getElementById('usersTable').innerHTML = users.map(u => `
+            <tr>
+                <td>${u.username}</td><td>${u.fullname}</td>
+                <td>${u.email || '-'}</td><td>${u.role}</td>
+                <td><button class="btn-small btn-delete" onclick="deleteUser(${u.id})">Eliminar</button></td>
+            </tr>`).join('');
+    }
+
+    function renderLeads() {
+        document.getElementById('leadsTable').innerHTML = leads.map(l => {
+            const asignado = (users.find(u => u.id === l.assigned_to) || {}).fullname || '-';
+            const sc = 'status-' + (l.status || 'nuevo');
+            return `<tr>
+                <td>${l.fecha || '-'}</td>
+                <td>${l.name}</td>
+                <td>${l.phone || '-'}</td>
+                <td>${l.origen || '-'}</td>
+                <td><span class="status-badge ${sc}">${l.status}</span></td>
+                <td>${asignado}</td>
+                <td class="timestamp">${fmtDT(l.created_at)}</td>
+                <td class="timestamp">${fmtDT(l.updated_at)}</td>
+                <td>
+                    <button class="btn-small btn-edit" onclick="openEditLeadModal(${l.id})">✏️ Editar</button>
+                    <button class="btn-small btn-delete" onclick="deleteLead(${l.id})">🗑️</button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function renderTasks() {
+        document.getElementById('tasksTable').innerHTML = tasks.map(t => `
+            <tr>
+                <td>${t.title}</td><td>${t.description || '-'}</td><td>${t.status}</td>
+                <td>
+                    <button class="btn-small btn-edit" onclick="toggleTask(${t.id},'${t.status}')">${t.status === 'pendiente' ? 'Completar' : 'Reabrir'}</button>
+                    <button class="btn-small btn-delete" onclick="deleteTask(${t.id})">Eliminar</button>
+                </td>
+            </tr>`).join('');
+    }
+
+    // ── HELPERS ────────────────────────────────────────────────
+    function fmtDT(iso) {
+        if (!iso) return '-';
+        const d = new Date(iso);
+        return d.toLocaleDateString('es-AR') + ' ' + d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function todayISO() { return new Date().toISOString().split('T')[0]; }
+
+    function fillUserSelect(id) {
+        const s = document.getElementById(id);
+        s.innerHTML = `<option value="">-- Seleccionar Usuario --</option>
+            <option value="${currentUser.id}">Yo (${currentUser.fullname})</option>`;
+        users.filter(u => u.id !== currentUser.id).forEach(u => {
+            s.innerHTML += `<option value="${u.id}">${u.fullname} (${u.username})</option>`;
+        });
+    }
+
+    // ── NAVEGACIÓN ─────────────────────────────────────────────
+    window.changeView = function(view, btn) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+        document.getElementById(view).classList.add('active');
+        if (btn) btn.classList.add('active');
+    };
+    window.closeModal = function(id) { document.getElementById(id).classList.remove('active'); };
+
+    // ── USUARIOS ───────────────────────────────────────────────
+    window.openUserModal = function() { document.getElementById('userModal').classList.add('active'); };
+
+    document.getElementById('userForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+            const { error } = await db.from('users').insert([{
+                username: document.getElementById('newUsername').value,
+                password: document.getElementById('newPassword').value,
+                fullname: document.getElementById('newFullname').value,
+                email: document.getElementById('newEmail').value,
+                role: document.getElementById('newRole').value
+            }]);
+            if (error) throw error;
+            await loadData(); closeModal('userModal'); e.target.reset();
+        } catch (err) { alert('Error: ' + err.message); }
+    });
+
+    // ── LEADS ──────────────────────────────────────────────────
+    window.openLeadModal = function() {
+        document.getElementById('leadModalTitle').textContent = 'Nuevo Lead';
+        document.getElementById('leadForm').reset();
+        document.getElementById('leadId').value = '';
+        document.getElementById('leadFecha').value = todayISO();
+        if (currentUser.role === 'admin') {
+            document.getElementById('leadUserSelectorGroup').style.display = 'block';
+            fillUserSelect('leadAssignToUser');
+        } else {
+            document.getElementById('leadUserSelectorGroup').style.display = 'none';
+        }
+        document.getElementById('leadModal').classList.add('active');
+    };
+
+    window.openEditLeadModal = function(id) {
+        const l = leads.find(x => x.id === id);
+        if (!l) return;
+        document.getElementById('leadModalTitle').textContent = 'Editar Lead';
+        document.getElementById('leadId').value = l.id;
+        document.getElementById('leadFecha').value = l.fecha || todayISO();
+        document.getElementById('leadName').value = l.name;
+        document.getElementById('leadPhone').value = l.phone || '';
+        document.getElementById('leadOrigen').value = l.origen || 'Otro';
+        document.getElementById('leadStatus').value = l.status || 'nuevo';
+        if (currentUser.role === 'admin') {
+            document.getElementById('leadUserSelectorGroup').style.display = 'block';
+            fillUserSelect('leadAssignToUser');
+            document.getElementById('leadAssignToUser').value = l.assigned_to || '';
+        } else {
+            document.getElementById('leadUserSelectorGroup').style.display = 'none';
+        }
+        document.getElementById('leadModal').classList.add('active');
+    };
+
+    document.getElementById('leadForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('leadId').value;
+        let assignedTo = currentUser.id;
+        if (currentUser.role === 'admin') {
+            const sel = document.getElementById('leadAssignToUser').value;
+            if (!sel) { alert('Por favor selecciona un usuario'); return; }
+            assignedTo = parseInt(sel);
+        }
+        const now = new Date().toISOString();
+        const payload = {
+            fecha: document.getElementById('leadFecha').value,
+            name: document.getElementById('leadName').value,
+            phone: document.getElementById('leadPhone').value,
+            origen: document.getElementById('leadOrigen').value,
+            status: document.getElementById('leadStatus').value,
+            assigned_to: assignedTo,
+            updated_at: now
+        };
+        try {
+            if (id) {
+                const { error } = await db.from('leads').update(payload).eq('id', id);
+                if (error) throw error;
+            } else {
+                payload.created_at = now;
+                const { error } = await db.from('leads').insert([payload]);
+                if (error) throw error;
+            }
+            await loadData(); closeModal('leadModal');
+        } catch (err) { alert('Error: ' + err.message); }
+    });
+
+    // ── TAREAS ─────────────────────────────────────────────────
+    window.openTaskModal = function() { document.getElementById('taskModal').classList.add('active'); };
+
+    document.getElementById('taskForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+            const { error } = await db.from('tasks').insert([{
+                title: document.getElementById('taskTitle').value,
+                description: document.getElementById('taskDesc').value,
+                status: 'pendiente',
+                user_id: currentUser.id
+            }]);
+            if (error) throw error;
+            await loadData(); closeModal('taskModal'); e.target.reset();
+        } catch (err) { alert('Error: ' + err.message); }
+    });
+
+    // ── IMPORTAR EXCEL ─────────────────────────────────────────
+    window.openImportModal = function() {
+        document.getElementById('importModal').classList.add('active');
+        document.getElementById('previewSection').style.display = 'none';
+        document.getElementById('excelFile').value = '';
+        document.getElementById('importAlert').innerHTML = '';
+        if (currentUser.role === 'admin') {
+            document.getElementById('importUserSelectorGroup').style.display = 'block';
+            fillUserSelect('importAssignToUser');
+        } else {
+            document.getElementById('importUserSelectorGroup').style.display = 'none';
+        }
+    };
+
+    window.closeImportModal = function() {
+        document.getElementById('importModal').classList.remove('active');
+        previewData = [];
+    };
+
+    window.handleFileSelect = function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+                if (!json.length) {
+                    document.getElementById('importAlert').innerHTML = '<div class="alert alert-error">Archivo vacío</div>';
+                    return;
+                }
+                processExcelData(json);
+            } catch (err) {
+                document.getElementById('importAlert').innerHTML = '<div class="alert alert-error">Error: ' + err.message + '</div>';
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
+    const ORIGENES_MAP = {
+        'facebook': 'Facebook', 'instagram': 'Instagram', 'whatsapp': 'WhatsApp',
+        'referido': 'Referido', 'web': 'Web', 'portal': 'Portal Inmobiliario',
+        'portal inmobiliario': 'Portal Inmobiliario', 'llamada': 'Llamada', 'otro': 'Otro'
+    };
+    const ESTADOS_VALIDOS = ['nuevo', 'contactado', 'calificado', 'descartado'];
+
+    function processExcelData(data) {
+        previewData = [];
+        let validCount = 0, invalidCount = 0;
+        data.forEach(row => {
+            const n = {};
+            Object.keys(row).forEach(k => { n[k.trim().toLowerCase()] = row[k]; });
+            const lead = {
+                fecha: n.fecha || n.date || '',
+                name: (n.nombre || n.name || '').toString().trim(),
+                phone: (n.teléfono || n.telefono || n.phone || n.celular || '').toString().trim(),
+                origen: (n.origen || n.source || '').toString().trim(),
+                status: (n.estado || n.status || 'nuevo').toString().toLowerCase().trim(),
+                valid: true, errors: []
+            };
+            if (!lead.name) { lead.valid = false; lead.errors.push('Sin nombre'); }
+            if (!lead.phone) { lead.valid = false; lead.errors.push('Sin teléfono'); }
+            const ok = Object.keys(ORIGENES_MAP).find(k => lead.origen.toLowerCase().includes(k));
+            lead.origen = ok ? ORIGENES_MAP[ok] : 'Otro';
+            if (!ESTADOS_VALIDOS.includes(lead.status)) lead.status = 'nuevo';
+            if (lead.valid) validCount++; else invalidCount++;
+            previewData.push(lead);
+        });
+
+        document.getElementById('previewTableBody').innerHTML = previewData.map(l => `
+            <tr style="${!l.valid ? 'background:#fff3cd;' : ''}">
+                <td>${l.fecha || '-'}</td><td>${l.name}</td><td>${l.phone}</td>
+                <td>${l.origen}</td><td>${l.status}</td>
+                <td><span class="status-badge ${l.valid ? 'status-valid' : 'status-invalid'}">
+                    ${l.valid ? '✓ Válido' : '✗ ' + l.errors.join(', ')}</span></td>
+            </tr>`).join('');
+
+        document.getElementById('totalRecords').textContent = previewData.length;
+        document.getElementById('validRecords').textContent = validCount;
+        document.getElementById('invalidRecords').textContent = invalidCount;
+        document.getElementById('previewSection').style.display = 'block';
+        document.getElementById('importAlert').innerHTML = validCount
+            ? `<div class="alert alert-success">${validCount} registros válidos listos para importar</div>`
+            : '<div class="alert alert-error">No hay registros válidos</div>';
+    }
+
+    window.importLeads = async function() {
+        const valid = previewData.filter(l => l.valid);
+        if (!valid.length) { alert('No hay leads válidos'); return; }
+        let assignedTo = currentUser.id;
+        if (currentUser.role === 'admin') {
+            const sel = document.getElementById('importAssignToUser').value;
+            if (!sel) { alert('Selecciona un usuario'); return; }
+            assignedTo = parseInt(sel);
+        }
+        if (!confirm(`¿Importar ${valid.length} leads?`)) return;
+        const now = new Date().toISOString();
+        try {
+            const { error } = await db.from('leads').insert(valid.map(l => ({
+                fecha: l.fecha ? l.fecha.toString() : null,
+                name: l.name,
+                phone: l.phone,
+                origen: l.origen,
+                status: l.status,
+                assigned_to: assignedTo,
+                created_at: now,
+                updated_at: now
+            })));
+            if (error) throw error;
+            document.getElementById('importAlert').innerHTML = `<div class="alert alert-success">✅ ${valid.length} leads importados exitosamente</div>`;
+            await loadData();
+            setTimeout(() => closeImportModal(), 2000);
+        } catch (err) {
+            document.getElementById('importAlert').innerHTML = '<div class="alert alert-error">Error: ' + err.message + '</div>';
+        }
+    };
+
+    // ── ELIMINAR / TOGGLE ──────────────────────────────────────
+    window.deleteUser = async function(id) {
+        if (confirm('¿Eliminar usuario?')) { await db.from('users').delete().eq('id', id); await loadData(); }
+    };
+    window.deleteLead = async function(id) {
+        if (confirm('¿Eliminar lead?')) { await db.from('leads').delete().eq('id', id); await loadData(); }
+    };
+    window.deleteTask = async function(id) {
+        if (confirm('¿Eliminar tarea?')) { await db.from('tasks').delete().eq('id', id); await loadData(); }
+    };
+    window.toggleTask = async function(id, status) {
+        await db.from('tasks').update({ status: status === 'pendiente' ? 'completada' : 'pendiente' }).eq('id', id);
+        await loadData();
+    };
+    window.logout = function() { location.reload(); };
+})();
+</script>
+</body>
+</html>
