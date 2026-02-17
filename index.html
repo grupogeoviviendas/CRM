@@ -141,10 +141,10 @@
         </div>
 
         <div class="nav">
-            <button onclick="showView('dashboard', this)" class="active">Dashboard</button>
-            <button onclick="showView('users', this)" id="usersBtn">Usuarios</button>
-            <button onclick="showView('leads', this)">Leads</button>
-            <button onclick="showView('tasks', this)">Tareas</button>
+            <button onclick="changeView('dashboard', this)" class="active">Dashboard</button>
+            <button onclick="changeView('users', this)" id="usersBtn">Usuarios</button>
+            <button onclick="changeView('leads', this)">Leads</button>
+            <button onclick="changeView('tasks', this)">Tareas</button>
         </div>
 
         <div id="dashboard" class="view active">
@@ -297,226 +297,229 @@
     </div>
 
     <script>
-        const SUPABASE_URL = 'https://ibqdtawlbkprcqkxwybk.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlicWR0YXdsYmtwcmNxa3h3eWJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNTg4MTUsImV4cCI6MjA4NjgzNDgxNX0.xL5NPuxiPtWyv7ExQ6a81kwPgtXVI5HDl85GmFSAUOg';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        (function() {
+            const db = window.supabase.createClient(
+                'https://ibqdtawlbkprcqkxwybk.supabase.co',
+                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlicWR0YXdsYmtwcmNxa3h3eWJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNTg4MTUsImV4cCI6MjA4NjgzNDgxNX0.xL5NPuxiPtWyv7ExQ6a81kwPgtXVI5HDl85GmFSAUOg'
+            );
 
-        let currentUser = null;
-        let users = [];
-        let leads = [];
-        let tasks = [];
+            let currentUser = null;
+            let users = [];
+            let leads = [];
+            let tasks = [];
 
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
+            document.getElementById('loginForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
 
-            try {
-                const { data, error } = await supabase.from('users').select('*');
-                if (error) throw error;
+                try {
+                    const { data, error } = await db.from('users').select('*');
+                    if (error) throw error;
 
-                const user = data.find(u => u.username === username && u.password === password);
-                if (user) {
-                    currentUser = user;
-                    showApp();
-                } else {
-                    document.getElementById('loginAlert').innerHTML = '<div class="alert alert-error">Usuario o contraseña incorrectos</div>';
+                    const user = data.find(u => u.username === username && u.password === password);
+                    if (user) {
+                        currentUser = user;
+                        showApp();
+                    } else {
+                        document.getElementById('loginAlert').innerHTML = '<div class="alert alert-error">Usuario o contraseña incorrectos</div>';
+                    }
+                } catch (error) {
+                    console.error(error);
+                    document.getElementById('loginAlert').innerHTML = '<div class="alert alert-error">Error: ' + error.message + '</div>';
                 }
-            } catch (error) {
-                console.error(error);
-                document.getElementById('loginAlert').innerHTML = '<div class="alert alert-error">Error: ' + error.message + '</div>';
-            }
-        });
+            });
 
-        async function showApp() {
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('app').classList.add('active');
-            document.getElementById('userInfo').textContent = currentUser.fullname + ' (' + currentUser.role + ')';
-            
-            if (currentUser.role !== 'admin') {
-                document.getElementById('usersBtn').style.display = 'none';
-            }
+            async function showApp() {
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('app').classList.add('active');
+                document.getElementById('userInfo').textContent = currentUser.fullname + ' (' + currentUser.role + ')';
+                
+                if (currentUser.role !== 'admin') {
+                    document.getElementById('usersBtn').style.display = 'none';
+                }
 
-            await loadData();
-        }
-
-        async function loadData() {
-            try {
-                const [usersRes, leadsRes, tasksRes] = await Promise.all([
-                    supabase.from('users').select('*'),
-                    supabase.from('leads').select('*'),
-                    supabase.from('tasks').select('*')
-                ]);
-
-                users = usersRes.data || [];
-                leads = leadsRes.data || [];
-                tasks = tasksRes.data || [];
-
-                updateStats();
-                renderUsers();
-                renderLeads();
-                renderTasks();
-            } catch (error) {
-                console.error('Error loading data:', error);
-            }
-        }
-
-        function updateStats() {
-            document.getElementById('totalUsers').textContent = users.length;
-            document.getElementById('totalLeads').textContent = leads.length;
-            document.getElementById('totalTasks').textContent = tasks.length;
-        }
-
-        function renderUsers() {
-            const tbody = document.getElementById('usersTable');
-            tbody.innerHTML = users.map(u => `
-                <tr>
-                    <td>${u.username}</td>
-                    <td>${u.fullname}</td>
-                    <td>${u.email || '-'}</td>
-                    <td>${u.role}</td>
-                    <td><button class="btn-small" onclick="deleteUser(${u.id})">Eliminar</button></td>
-                </tr>
-            `).join('');
-        }
-
-        function renderLeads() {
-            const tbody = document.getElementById('leadsTable');
-            tbody.innerHTML = leads.map(l => `
-                <tr>
-                    <td>${l.name}</td>
-                    <td>${l.email}</td>
-                    <td>${l.phone || '-'}</td>
-                    <td>${l.status}</td>
-                    <td><button class="btn-small" onclick="deleteLead(${l.id})">Eliminar</button></td>
-                </tr>
-            `).join('');
-        }
-
-        function renderTasks() {
-            const tbody = document.getElementById('tasksTable');
-            tbody.innerHTML = tasks.map(t => `
-                <tr>
-                    <td>${t.title}</td>
-                    <td>${t.description || '-'}</td>
-                    <td>${t.status}</td>
-                    <td>
-                        <button class="btn-small" onclick="toggleTask(${t.id}, '${t.status}')">${t.status === 'pendiente' ? 'Completar' : 'Reabrir'}</button>
-                        <button class="btn-small" onclick="deleteTask(${t.id})">Eliminar</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function showView(view, button) {
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-            document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
-            document.getElementById(view).classList.add('active');
-            if (button) button.classList.add('active');
-        }
-
-        function openUserModal() {
-            document.getElementById('userModal').classList.add('active');
-        }
-
-        function openLeadModal() {
-            document.getElementById('leadModal').classList.add('active');
-        }
-
-        function openTaskModal() {
-            document.getElementById('taskModal').classList.add('active');
-        }
-
-        function closeModal(id) {
-            document.getElementById(id).classList.remove('active');
-        }
-
-        document.getElementById('userForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                const { error } = await supabase.from('users').insert([{
-                    username: document.getElementById('newUsername').value,
-                    password: document.getElementById('newPassword').value,
-                    fullname: document.getElementById('newFullname').value,
-                    email: document.getElementById('newEmail').value,
-                    role: document.getElementById('newRole').value
-                }]);
-                if (error) throw error;
-                await loadData();
-                closeModal('userModal');
-                e.target.reset();
-            } catch (error) {
-                alert('Error: ' + error.message);
-            }
-        });
-
-        document.getElementById('leadForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                const { error } = await supabase.from('leads').insert([{
-                    name: document.getElementById('leadName').value,
-                    email: document.getElementById('leadEmail').value,
-                    phone: document.getElementById('leadPhone').value,
-                    status: document.getElementById('leadStatus').value,
-                    assigned_to: currentUser.id
-                }]);
-                if (error) throw error;
-                await loadData();
-                closeModal('leadModal');
-                e.target.reset();
-            } catch (error) {
-                alert('Error: ' + error.message);
-            }
-        });
-
-        document.getElementById('taskForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                const { error } = await supabase.from('tasks').insert([{
-                    title: document.getElementById('taskTitle').value,
-                    description: document.getElementById('taskDesc').value,
-                    status: 'pendiente',
-                    user_id: currentUser.id
-                }]);
-                if (error) throw error;
-                await loadData();
-                closeModal('taskModal');
-                e.target.reset();
-            } catch (error) {
-                alert('Error: ' + error.message);
-            }
-        });
-
-        async function deleteUser(id) {
-            if (confirm('¿Eliminar usuario?')) {
-                await supabase.from('users').delete().eq('id', id);
                 await loadData();
             }
-        }
 
-        async function deleteLead(id) {
-            if (confirm('¿Eliminar lead?')) {
-                await supabase.from('leads').delete().eq('id', id);
-                await loadData();
+            async function loadData() {
+                try {
+                    const [usersRes, leadsRes, tasksRes] = await Promise.all([
+                        db.from('users').select('*'),
+                        db.from('leads').select('*'),
+                        db.from('tasks').select('*')
+                    ]);
+
+                    users = usersRes.data || [];
+                    leads = leadsRes.data || [];
+                    tasks = tasksRes.data || [];
+
+                    updateStats();
+                    renderUsers();
+                    renderLeads();
+                    renderTasks();
+                } catch (error) {
+                    console.error('Error loading data:', error);
+                }
             }
-        }
 
-        async function deleteTask(id) {
-            if (confirm('¿Eliminar tarea?')) {
-                await supabase.from('tasks').delete().eq('id', id);
-                await loadData();
+            function updateStats() {
+                document.getElementById('totalUsers').textContent = users.length;
+                document.getElementById('totalLeads').textContent = leads.length;
+                document.getElementById('totalTasks').textContent = tasks.length;
             }
-        }
 
-        async function toggleTask(id, currentStatus) {
-            const newStatus = currentStatus === 'pendiente' ? 'completada' : 'pendiente';
-            await supabase.from('tasks').update({ status: newStatus }).eq('id', id);
-            await loadData();
-        }
+            function renderUsers() {
+                const tbody = document.getElementById('usersTable');
+                tbody.innerHTML = users.map(u => `
+                    <tr>
+                        <td>${u.username}</td>
+                        <td>${u.fullname}</td>
+                        <td>${u.email || '-'}</td>
+                        <td>${u.role}</td>
+                        <td><button class="btn-small" onclick="deleteUser(${u.id})">Eliminar</button></td>
+                    </tr>
+                `).join('');
+            }
 
-        function logout() {
-            location.reload();
-        }
+            function renderLeads() {
+                const tbody = document.getElementById('leadsTable');
+                tbody.innerHTML = leads.map(l => `
+                    <tr>
+                        <td>${l.name}</td>
+                        <td>${l.email}</td>
+                        <td>${l.phone || '-'}</td>
+                        <td>${l.status}</td>
+                        <td><button class="btn-small" onclick="deleteLead(${l.id})">Eliminar</button></td>
+                    </tr>
+                `).join('');
+            }
+
+            function renderTasks() {
+                const tbody = document.getElementById('tasksTable');
+                tbody.innerHTML = tasks.map(t => `
+                    <tr>
+                        <td>${t.title}</td>
+                        <td>${t.description || '-'}</td>
+                        <td>${t.status}</td>
+                        <td>
+                            <button class="btn-small" onclick="toggleTask(${t.id}, '${t.status}')">${t.status === 'pendiente' ? 'Completar' : 'Reabrir'}</button>
+                            <button class="btn-small" onclick="deleteTask(${t.id})">Eliminar</button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            window.changeView = function(view, button) {
+                document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+                document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+                document.getElementById(view).classList.add('active');
+                if (button) button.classList.add('active');
+            };
+
+            window.openUserModal = function() {
+                document.getElementById('userModal').classList.add('active');
+            };
+
+            window.openLeadModal = function() {
+                document.getElementById('leadModal').classList.add('active');
+            };
+
+            window.openTaskModal = function() {
+                document.getElementById('taskModal').classList.add('active');
+            };
+
+            window.closeModal = function(id) {
+                document.getElementById(id).classList.remove('active');
+            };
+
+            document.getElementById('userForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                try {
+                    const { error } = await db.from('users').insert([{
+                        username: document.getElementById('newUsername').value,
+                        password: document.getElementById('newPassword').value,
+                        fullname: document.getElementById('newFullname').value,
+                        email: document.getElementById('newEmail').value,
+                        role: document.getElementById('newRole').value
+                    }]);
+                    if (error) throw error;
+                    await loadData();
+                    closeModal('userModal');
+                    e.target.reset();
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                }
+            });
+
+            document.getElementById('leadForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                try {
+                    const { error } = await db.from('leads').insert([{
+                        name: document.getElementById('leadName').value,
+                        email: document.getElementById('leadEmail').value,
+                        phone: document.getElementById('leadPhone').value,
+                        status: document.getElementById('leadStatus').value,
+                        assigned_to: currentUser.id
+                    }]);
+                    if (error) throw error;
+                    await loadData();
+                    closeModal('leadModal');
+                    e.target.reset();
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                }
+            });
+
+            document.getElementById('taskForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                try {
+                    const { error } = await db.from('tasks').insert([{
+                        title: document.getElementById('taskTitle').value,
+                        description: document.getElementById('taskDesc').value,
+                        status: 'pendiente',
+                        user_id: currentUser.id
+                    }]);
+                    if (error) throw error;
+                    await loadData();
+                    closeModal('taskModal');
+                    e.target.reset();
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                }
+            });
+
+            window.deleteUser = async function(id) {
+                if (confirm('¿Eliminar usuario?')) {
+                    await db.from('users').delete().eq('id', id);
+                    await loadData();
+                }
+            };
+
+            window.deleteLead = async function(id) {
+                if (confirm('¿Eliminar lead?')) {
+                    await db.from('leads').delete().eq('id', id);
+                    await loadData();
+                }
+            };
+
+            window.deleteTask = async function(id) {
+                if (confirm('¿Eliminar tarea?')) {
+                    await db.from('tasks').delete().eq('id', id);
+                    await loadData();
+                }
+            };
+
+            window.toggleTask = async function(id, currentStatus) {
+                const newStatus = currentStatus === 'pendiente' ? 'completada' : 'pendiente';
+                await db.from('tasks').update({ status: newStatus }).eq('id', id);
+                await loadData();
+            };
+
+            window.logout = function() {
+                location.reload();
+            };
+        })();
     </script>
 </body>
 </html>
