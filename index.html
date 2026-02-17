@@ -3,374 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRM Multi-Usuario en Línea</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>CRM Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --primary: #6366f1;
-            --primary-dark: #4f46e5;
-            --secondary: #ec4899;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --gray-50: #f9fafb;
-            --gray-100: #f3f4f6;
-            --gray-200: #e5e7eb;
-            --gray-300: #d1d5db;
-            --gray-400: #9ca3af;
-            --gray-500: #6b7280;
-            --gray-600: #4b5563;
-            --gray-700: #374151;
-            --gray-800: #1f2937;
-            --gray-900: #111827;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Poppins', sans-serif;
+            font-family: Arial, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 0;
-        }
-
-        .login-container {
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
-            padding: 20px;
         }
-
-        .login-card {
+        .login-container {
             background: white;
-            border-radius: 20px;
-            padding: 48px;
-            max-width: 450px;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
             width: 100%;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
         }
-
-        .login-header {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-
-        .login-header h1 {
-            font-size: 32px;
-            color: var(--gray-900);
-            margin-bottom: 8px;
-        }
-
-        .login-header p {
-            color: var(--gray-600);
+        h1 { text-align: center; color: #333; margin-bottom: 30px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; color: #555; font-weight: bold; }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
             font-size: 14px;
         }
-
-        .app-container {
-            display: none;
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
         }
-
-        .app-container.active {
-            display: block;
-        }
-
-        .navbar {
+        button:hover { background: #5568d3; }
+        .app { display: none; }
+        .app.active { display: block; }
+        .header {
             background: white;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            padding: 16px 24px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-
-        .navbar-brand {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--primary);
-        }
-
-        .navbar-user {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .user-info {
-            text-align: right;
-        }
-
-        .user-name {
-            font-weight: 600;
-            color: var(--gray-900);
-            font-size: 14px;
-        }
-
-        .user-role {
-            font-size: 12px;
-            color: var(--gray-500);
-        }
-
-        .status-indicator {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--success);
-            margin-right: 6px;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 24px;
-        }
-
-        .tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 24px;
+        .nav { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .nav button {
+            flex: 1;
+            min-width: 150px;
             background: white;
-            padding: 8px;
-            border-radius: 12px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            flex-wrap: wrap;
+            color: #667eea;
+            border: 2px solid #667eea;
         }
-
-        .tab {
-            padding: 12px 24px;
-            border-radius: 8px;
-            border: none;
-            background: transparent;
-            color: var(--gray-600);
-            font-weight: 600;
+        .nav button.active { background: #667eea; color: white; }
+        .view { display: none; background: white; padding: 20px; border-radius: 10px; }
+        .view.active { display: block; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #f5f5f5; }
+        .btn-small {
+            width: auto;
+            padding: 6px 12px;
             font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s;
+            margin: 0 2px;
         }
-
-        .tab:hover {
-            background: var(--gray-100);
-        }
-
-        .tab.active {
-            background: var(--primary);
-            color: white;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .stats {
+        .stat-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            transition: transform 0.2s;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .stat-label {
-            color: var(--gray-600);
-            font-size: 13px;
-            font-weight: 500;
-            margin-bottom: 8px;
-        }
-
-        .stat-value {
-            font-size: 32px;
-            font-weight: 700;
-            color: var(--gray-900);
-        }
-
-        .card {
-            background: white;
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            margin-bottom: 24px;
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            gap: 20px;
             margin-bottom: 20px;
         }
-
-        .card-title {
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--gray-900);
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
         }
-
-        .btn {
-            padding: 10px 20px;
-            border-radius: 8px;
-            border: none;
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-family: 'Poppins', sans-serif;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: var(--primary-dark);
-            transform: translateY(-1px);
-        }
-
-        .btn-small {
-            padding: 6px 12px;
-            font-size: 12px;
-        }
-
-        .btn-danger {
-            background: var(--danger);
-            color: white;
-        }
-
-        .btn-success {
-            background: var(--success);
-            color: white;
-        }
-
-        .btn-secondary {
-            background: var(--gray-200);
-            color: var(--gray-700);
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        .form-label {
-            display: block;
-            margin-bottom: 6px;
-            font-weight: 500;
-            color: var(--gray-700);
-            font-size: 14px;
-        }
-
-        .form-input, .form-select, .form-textarea {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid var(--gray-200);
-            border-radius: 8px;
-            font-size: 14px;
-            font-family: 'Poppins', sans-serif;
-            transition: border-color 0.2s;
-        }
-
-        .form-input:focus, .form-select:focus, .form-textarea:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-
-        .form-textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .table th {
-            text-align: left;
-            padding: 12px;
-            background: var(--gray-50);
-            color: var(--gray-700);
-            font-weight: 600;
-            font-size: 13px;
-            border-bottom: 2px solid var(--gray-200);
-        }
-
-        .table td {
-            padding: 12px;
-            border-bottom: 1px solid var(--gray-200);
-            color: var(--gray-900);
-        }
-
-        .table tr:hover {
-            background: var(--gray-50);
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .badge-admin {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .badge-user {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-
-        .badge-new {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-
-        .badge-contacted {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .badge-qualified {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .badge-pending {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .badge-completed {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
+        .stat-value { font-size: 36px; font-weight: bold; color: #667eea; }
+        .stat-label { color: #888; margin-top: 5px; }
         .modal {
             display: none;
             position: fixed;
@@ -378,1029 +96,427 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
+            background: rgba(0,0,0,0.5);
             align-items: center;
             justify-content: center;
         }
-
-        .modal.active {
-            display: flex;
-        }
-
+        .modal.active { display: flex; }
         .modal-content {
             background: white;
-            border-radius: 16px;
-            padding: 32px;
-            max-width: 500px;
+            padding: 30px;
+            border-radius: 10px;
             width: 90%;
-            max-height: 90vh;
+            max-width: 500px;
+            max-height: 80vh;
             overflow-y: auto;
         }
-
-        .modal-header {
-            font-size: 24px;
-            font-weight: 700;
-            margin-bottom: 24px;
-            color: var(--gray-900);
-        }
-
-        .modal-footer {
-            display: flex;
-            gap: 12px;
-            justify-content: flex-end;
-            margin-top: 24px;
-        }
-
-        .lead-item {
-            padding: 16px;
-            border: 2px solid var(--gray-200);
-            border-radius: 12px;
-            margin-bottom: 12px;
-            transition: all 0.2s;
-        }
-
-        .lead-item:hover {
-            border-color: var(--primary);
-            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
-        }
-
-        .lead-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: start;
-            margin-bottom: 8px;
-        }
-
-        .lead-name {
-            font-weight: 600;
-            color: var(--gray-900);
-            font-size: 16px;
-        }
-
-        .lead-company {
-            color: var(--gray-600);
-            font-size: 14px;
-            margin-bottom: 4px;
-        }
-
-        .lead-info {
-            color: var(--gray-500);
-            font-size: 13px;
-            margin-bottom: 2px;
-        }
-
-        .lead-actions {
-            display: flex;
-            gap: 8px;
-            margin-top: 12px;
-            flex-wrap: wrap;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--gray-500);
-        }
-
-        .empty-state-icon {
-            font-size: 64px;
-            margin-bottom: 16px;
-            opacity: 0.3;
-        }
-
-        .user-filter {
-            margin-bottom: 20px;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: var(--gray-500);
-        }
-
-        .loading-spinner {
-            border: 3px solid var(--gray-200);
-            border-top: 3px solid var(--primary);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 16px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .alert {
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 16px;
-            font-size: 14px;
-        }
-
-        .alert-info {
-            background: #dbeafe;
-            color: #1e40af;
-            border-left: 4px solid #3b82f6;
-        }
-
-        .alert-warning {
-            background: #fef3c7;
-            color: #92400e;
-            border-left: 4px solid #f59e0b;
-        }
-
-        .alert-success {
-            background: #d1fae5;
-            color: #065f46;
-            border-left: 4px solid #10b981;
-        }
-
-        @media (max-width: 768px) {
-            .stats {
-                grid-template-columns: 1fr;
-            }
-
-            .table {
-                font-size: 12px;
-            }
-
-            .table th, .table td {
-                padding: 8px;
-            }
-
-            .navbar {
-                flex-direction: column;
-                gap: 12px;
-                text-align: center;
-            }
-
-            .tabs {
-                flex-direction: column;
-            }
-
-            .tab {
-                width: 100%;
-            }
-        }
+        .alert { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .alert-error { background: #fee; color: #c00; border: 1px solid #fcc; }
     </style>
 </head>
 <body>
-    <!-- Login Screen -->
-    <div class="login-container" id="loginScreen">
-        <div class="login-card">
-            <div class="login-header">
-                <h1>🎯 CRM Pro</h1>
-                <p>Sistema de gestión comercial en la nube</p>
+    <div id="loginScreen" class="login-container">
+        <h1>🎯 CRM Pro</h1>
+        <div id="loginAlert"></div>
+        <form id="loginForm">
+            <div class="form-group">
+                <label>Usuario</label>
+                <input type="text" id="username" value="admin" required>
             </div>
+            <div class="form-group">
+                <label>Contraseña</label>
+                <input type="password" id="password" value="admin123" required>
+            </div>
+            <button type="submit">Iniciar Sesión</button>
+        </form>
+    </div>
 
-            <div id="firebaseStatus" class="alert alert-info" style="display: none;">
-                <strong>⚙️ Configuración requerida:</strong><br>
-                Este CRM necesita configuración de Firebase para funcionar en línea.
+    <div id="app" class="app" style="padding: 20px;">
+        <div class="header">
+            <div>
+                <h2>🎯 CRM Pro</h2>
+                <small id="userInfo"></small>
             </div>
+            <button onclick="logout()" class="btn-small">Salir</button>
+        </div>
 
-            <form id="loginForm">
-                <div class="form-group">
-                    <label class="form-label">Usuario</label>
-                    <input type="text" class="form-input" id="loginUsername" required>
+        <div class="nav">
+            <button onclick="showView('dashboard', this)" class="active">Dashboard</button>
+            <button onclick="showView('users', this)" id="usersBtn">Usuarios</button>
+            <button onclick="showView('leads', this)">Leads</button>
+            <button onclick="showView('tasks', this)">Tareas</button>
+        </div>
+
+        <div id="dashboard" class="view active">
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalUsers">0</div>
+                    <div class="stat-label">Usuarios</div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Contraseña</label>
-                    <input type="password" class="form-input" id="loginPassword" required>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalLeads">0</div>
+                    <div class="stat-label">Leads</div>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 8px;">Iniciar Sesión</button>
-            </form>
-            <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--gray-200); font-size: 13px; color: var(--gray-600);">
-                <strong>Usuario por defecto:</strong><br>
-                Admin: admin / admin123
+                <div class="stat-card">
+                    <div class="stat-value" id="totalTasks">0</div>
+                    <div class="stat-label">Tareas</div>
+                </div>
             </div>
+        </div>
+
+        <div id="users" class="view">
+            <h3>Gestión de Usuarios</h3>
+            <button onclick="openUserModal()" style="margin: 20px 0;">+ Nuevo Usuario</button>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>Rol</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTable"></tbody>
+            </table>
+        </div>
+
+        <div id="leads" class="view">
+            <h3>Leads</h3>
+            <button onclick="openLeadModal()" style="margin: 20px 0;">+ Nuevo Lead</button>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>Teléfono</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="leadsTable"></tbody>
+            </table>
+        </div>
+
+        <div id="tasks" class="view">
+            <h3>Tareas</h3>
+            <button onclick="openTaskModal()" style="margin: 20px 0;">+ Nueva Tarea</button>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Título</th>
+                        <th>Descripción</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tasksTable"></tbody>
+            </table>
         </div>
     </div>
 
-    <!-- App Container -->
-    <div class="app-container" id="appContainer">
-        <!-- Navbar -->
-        <div class="navbar">
-            <div class="navbar-brand">
-                <span class="status-indicator"></span>
-                🎯 CRM Pro
-            </div>
-            <div class="navbar-user">
-                <div class="user-info">
-                    <div class="user-name" id="currentUserName"></div>
-                    <div class="user-role" id="currentUserRole"></div>
-                </div>
-                <button class="btn btn-secondary btn-small" onclick="logout()">Cerrar Sesión</button>
-            </div>
-        </div>
-
-        <div class="container">
-            <!-- Admin Tabs -->
-            <div class="tabs" id="adminTabs" style="display: none;">
-                <button class="tab active" onclick="switchTab('dashboard')">Dashboard</button>
-                <button class="tab" onclick="switchTab('users')">Usuarios</button>
-                <button class="tab" onclick="switchTab('all-leads')">Todos los Leads</button>
-                <button class="tab" onclick="switchTab('my-leads')">Mis Leads</button>
-                <button class="tab" onclick="switchTab('tasks')">Tareas</button>
-            </div>
-
-            <!-- User Tabs -->
-            <div class="tabs" id="userTabs" style="display: none;">
-                <button class="tab active" onclick="switchTab('my-leads')">Mis Leads</button>
-                <button class="tab" onclick="switchTab('tasks')">Mis Tareas</button>
-            </div>
-
-            <!-- Loading State -->
-            <div class="loading" id="loadingState">
-                <div class="loading-spinner"></div>
-                <p>Cargando datos...</p>
-            </div>
-
-            <!-- Dashboard Tab (Admin only) -->
-            <div class="tab-content" id="dashboard-tab" style="display: none;">
-                <div class="stats">
-                    <div class="stat-card">
-                        <div class="stat-label">Total Usuarios</div>
-                        <div class="stat-value" id="totalUsers">0</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Total Leads</div>
-                        <div class="stat-value" id="totalLeads">0</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Leads Calificados</div>
-                        <div class="stat-value" id="qualifiedLeads">0</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-label">Tareas Pendientes</div>
-                        <div class="stat-value" id="pendingTasksCount">0</div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">Actividad Reciente</h2>
-                    </div>
-                    <div id="recentActivity"></div>
-                </div>
-            </div>
-
-            <!-- Users Tab (Admin only) -->
-            <div class="tab-content" id="users-tab" style="display: none;">
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">Gestión de Usuarios</h2>
-                        <button class="btn btn-primary" onclick="openUserModal()">+ Nuevo Usuario</button>
-                    </div>
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Usuario</th>
-                                <th>Nombre</th>
-                                <th>Email</th>
-                                <th>Rol</th>
-                                <th>Leads Asignados</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="usersTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- All Leads Tab (Admin only) -->
-            <div class="tab-content" id="all-leads-tab" style="display: none;">
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">Todos los Leads</h2>
-                        <button class="btn btn-primary" onclick="openLeadModal()">+ Nuevo Lead</button>
-                    </div>
-                    
-                    <div class="user-filter">
-                        <label class="form-label">Filtrar por usuario:</label>
-                        <select class="form-select" id="leadUserFilter" onchange="renderAllLeads()">
-                            <option value="">Todos los usuarios</option>
-                        </select>
-                    </div>
-
-                    <div id="allLeadsList"></div>
-                </div>
-            </div>
-
-            <!-- My Leads Tab -->
-            <div class="tab-content" id="my-leads-tab" style="display: none;">
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">Mis Leads</h2>
-                        <button class="btn btn-primary" onclick="openLeadModal()">+ Nuevo Lead</button>
-                    </div>
-                    <div id="myLeadsList"></div>
-                </div>
-            </div>
-
-            <!-- Tasks Tab -->
-            <div class="tab-content" id="tasks-tab" style="display: none;">
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">Mis Tareas</h2>
-                        <button class="btn btn-primary" onclick="openTaskModal()">+ Nueva Tarea</button>
-                    </div>
-                    <div id="tasksList"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- User Modal -->
-    <div class="modal" id="userModal">
+    <div id="userModal" class="modal">
         <div class="modal-content">
-            <h2 class="modal-header">Nuevo Usuario</h2>
+            <h3>Nuevo Usuario</h3>
             <form id="userForm">
                 <div class="form-group">
-                    <label class="form-label">Nombre de usuario *</label>
-                    <input type="text" class="form-input" id="userName" required>
+                    <label>Usuario</label>
+                    <input type="text" id="newUsername" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Contraseña *</label>
-                    <input type="password" class="form-input" id="userPassword" required>
+                    <label>Contraseña</label>
+                    <input type="password" id="newPassword" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Nombre completo *</label>
-                    <input type="text" class="form-input" id="userFullName" required>
+                    <label>Nombre</label>
+                    <input type="text" id="newFullname" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Email</label>
-                    <input type="email" class="form-input" id="userEmail">
+                    <label>Email</label>
+                    <input type="email" id="newEmail">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Rol *</label>
-                    <select class="form-select" id="userRole">
+                    <label>Rol</label>
+                    <select id="newRole" style="width: 100%; padding: 10px;">
                         <option value="user">Usuario</option>
-                        <option value="admin">Administrador</option>
+                        <option value="admin">Admin</option>
                     </select>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeUserModal()">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Crear Usuario</button>
-                </div>
+                <button type="submit">Crear</button>
+                <button type="button" onclick="closeModal('userModal')" style="margin-top: 10px; background: #999;">Cancelar</button>
             </form>
         </div>
     </div>
 
-    <!-- Lead Modal -->
-    <div class="modal" id="leadModal">
+    <div id="leadModal" class="modal">
         <div class="modal-content">
-            <h2 class="modal-header">Nuevo Lead</h2>
+            <h3>Nuevo Lead</h3>
             <form id="leadForm">
                 <div class="form-group">
-                    <label class="form-label">Nombre completo *</label>
-                    <input type="text" class="form-input" id="leadName" required>
+                    <label>Nombre</label>
+                    <input type="text" id="leadName" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Empresa</label>
-                    <input type="text" class="form-input" id="leadCompany">
+                    <label>Email</label>
+                    <input type="email" id="leadEmail" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Email *</label>
-                    <input type="email" class="form-input" id="leadEmail" required>
+                    <label>Teléfono</label>
+                    <input type="tel" id="leadPhone">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Teléfono</label>
-                    <input type="tel" class="form-input" id="leadPhone">
-                </div>
-                <div class="form-group" id="assignUserGroup">
-                    <label class="form-label">Asignar a usuario</label>
-                    <select class="form-select" id="leadAssignedUser">
-                        <option value="">-- Seleccionar --</option>
+                    <label>Estado</label>
+                    <select id="leadStatus" style="width: 100%; padding: 10px;">
+                        <option value="nuevo">Nuevo</option>
+                        <option value="contactado">Contactado</option>
+                        <option value="calificado">Calificado</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Estado</label>
-                    <select class="form-select" id="leadStatus">
-                        <option value="new">Nuevo</option>
-                        <option value="contacted">Contactado</option>
-                        <option value="qualified">Calificado</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Notas</label>
-                    <textarea class="form-textarea" id="leadNotes"></textarea>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeLeadModal()">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Guardar Lead</button>
-                </div>
+                <button type="submit">Crear</button>
+                <button type="button" onclick="closeModal('leadModal')" style="margin-top: 10px; background: #999;">Cancelar</button>
             </form>
         </div>
     </div>
 
-    <!-- Task Modal -->
-    <div class="modal" id="taskModal">
+    <div id="taskModal" class="modal">
         <div class="modal-content">
-            <h2 class="modal-header">Nueva Tarea</h2>
+            <h3>Nueva Tarea</h3>
             <form id="taskForm">
                 <div class="form-group">
-                    <label class="form-label">Título *</label>
-                    <input type="text" class="form-input" id="taskTitle" required>
+                    <label>Título</label>
+                    <input type="text" id="taskTitle" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Lead relacionado</label>
-                    <select class="form-select" id="taskLead">
-                        <option value="">-- Seleccionar --</option>
-                    </select>
+                    <label>Descripción</label>
+                    <textarea id="taskDesc" style="width: 100%; padding: 10px; min-height: 80px;"></textarea>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Fecha límite</label>
-                    <input type="date" class="form-input" id="taskDate">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Descripción</label>
-                    <textarea class="form-textarea" id="taskDescription"></textarea>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeTaskModal()">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Crear Tarea</button>
-                </div>
+                <button type="submit">Crear</button>
+                <button type="button" onclick="closeModal('taskModal')" style="margin-top: 10px; background: #999;">Cancelar</button>
             </form>
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-
     <script>
-        // =====================================================
-        // CONFIGURACIÓN DE FIREBASE
-        // =====================================================
-        // IMPORTANTE: Debes reemplazar estos valores con tu propia configuración de Firebase
-        // Para obtener tu configuración:
-        // 1. Ve a https://console.firebase.google.com/
-        // 2. Crea un nuevo proyecto (o usa uno existente)
-        // 3. Ve a Configuración del proyecto > Tus apps > Agregar app web
-        // 4. Copia la configuración y pégala aquí
-        
-        const firebaseConfig = {
-            apiKey: "AIzaSyB-St4QIC0gTIe79AIptxAO05tkqgRgUgE",
-            authDomain: "crm-geo-viviendas.firebaseapp.com",
-            databaseURL: "https://crm-geo-viviendas-default-rtdb.firebaseio.com",
-            projectId: "crm-geo-viviendas",
-            storageBucket: "crm-geo-viviendas.firebasestorage.app",
-            messagingSenderId: "38021588778",
-            appId: "1:38021588778:web:591f3c6e52328da623a053"
-        };
+        const SUPABASE_URL = 'https://ibqdtawlbkprcqkxwybk.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlicWR0YXdsYmtwcmNxa3h3eWJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNTg4MTUsImV4cCI6MjA4NjgzNDgxNX0.xL5NPuxiPtWyv7ExQ6a81kwPgtXVI5HDl85GmFSAUOg';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Variables globales
-        let db = null;
         let currentUser = null;
         let users = [];
         let leads = [];
         let tasks = [];
-        let isFirebaseConfigured = false;
 
-        // Verificar si Firebase está configurado
-        function checkFirebaseConfig() {
-            if (firebaseConfig.apiKey === "TU_API_KEY_AQUI") {
-                document.getElementById('firebaseStatus').style.display = 'block';
-                isFirebaseConfigured = false;
-                return false;
-            }
-            isFirebaseConfigured = true;
-            return true;
-        }
-
-        // Inicializar Firebase
-        function initFirebase() {
-            if (!checkFirebaseConfig()) {
-                console.warn('Firebase no configurado - usando modo demo local');
-                initDemoMode();
-                return;
-            }
-
-            try {
-                firebase.initializeApp(firebaseConfig);
-                db = firebase.database();
-                console.log('Firebase inicializado correctamente');
-                initRealTimeListeners();
-            } catch (error) {
-                console.error('Error inicializando Firebase:', error);
-                alert('Error de conexión con la base de datos');
-                initDemoMode();
-            }
-        }
-
-        // Modo demo con localStorage (si Firebase no está configurado)
-        function initDemoMode() {
-            console.log('Iniciando modo demo local');
-            db = {
-                ref: (path) => ({
-                    once: async (event) => ({
-                        val: () => {
-                            const data = localStorage.getItem(path);
-                            return data ? JSON.parse(data) : null;
-                        }
-                    }),
-                    set: async (data) => {
-                        localStorage.setItem(path, JSON.stringify(data));
-                    },
-                    push: () => ({
-                        set: async (data) => {
-                            const existing = localStorage.getItem(path);
-                            const arr = existing ? JSON.parse(existing) : [];
-                            arr.push({ ...data, id: Date.now() });
-                            localStorage.setItem(path, JSON.stringify(arr));
-                        }
-                    }),
-                    on: (event, callback) => {
-                        const data = localStorage.getItem(path);
-                        callback({ val: () => data ? JSON.parse(data) : null });
-                    }
-                })
-            };
-            initDefaultData();
-        }
-
-        // Inicializar listeners en tiempo real
-        function initRealTimeListeners() {
-            if (!isFirebaseConfigured) return;
-
-            // Escuchar cambios en usuarios
-            db.ref('users').on('value', (snapshot) => {
-                users = [];
-                const data = snapshot.val();
-                if (data) {
-                    Object.keys(data).forEach(key => {
-                        users.push({ ...data[key], id: key });
-                    });
-                }
-                renderApp();
-            });
-
-            // Escuchar cambios en leads
-            db.ref('leads').on('value', (snapshot) => {
-                leads = [];
-                const data = snapshot.val();
-                if (data) {
-                    Object.keys(data).forEach(key => {
-                        leads.push({ ...data[key], id: key });
-                    });
-                }
-                renderApp();
-            });
-
-            // Escuchar cambios en tareas
-            db.ref('tasks').on('value', (snapshot) => {
-                tasks = [];
-                const data = snapshot.val();
-                if (data) {
-                    Object.keys(data).forEach(key => {
-                        tasks.push({ ...data[key], id: key });
-                    });
-                }
-                renderApp();
-            });
-        }
-
-        // Inicializar datos por defecto
-        async function initDefaultData() {
-            // No crear usuario por defecto, ya debe existir en Firebase
-            console.log('Base de datos inicializada');
-        }
-
-        // Cargar datos
-        async function loadData() {
-            try {
-                document.getElementById('loadingState').style.display = 'block';
-                
-                const usersSnapshot = await db.ref('users').once('value');
-                const leadsSnapshot = await db.ref('leads').once('value');
-                const tasksSnapshot = await db.ref('tasks').once('value');
-
-                users = [];
-                leads = [];
-                tasks = [];
-
-                if (usersSnapshot.val()) {
-                    Object.keys(usersSnapshot.val()).forEach(key => {
-                        users.push({ ...usersSnapshot.val()[key], id: key });
-                    });
-                }
-
-                if (leadsSnapshot.val()) {
-                    Object.keys(leadsSnapshot.val()).forEach(key => {
-                        leads.push({ ...leadsSnapshot.val()[key], id: key });
-                    });
-                }
-
-                if (tasksSnapshot.val()) {
-                    Object.keys(tasksSnapshot.val()).forEach(key => {
-                        tasks.push({ ...tasksSnapshot.val()[key], id: key });
-                    });
-                }
-
-                document.getElementById('loadingState').style.display = 'none';
-            } catch (error) {
-                console.error('Error cargando datos:', error);
-                document.getElementById('loadingState').style.display = 'none';
-            }
-        }
-
-        // Login
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            await loadData();
-            
-            const username = document.getElementById('loginUsername').value;
-            const password = document.getElementById('loginPassword').value;
-            
-            const user = users.find(u => u.username === username && u.password === password);
-            
-            if (user) {
-                currentUser = user;
-                document.getElementById('loginScreen').style.display = 'none';
-                document.getElementById('appContainer').classList.add('active');
-                
-                document.getElementById('currentUserName').textContent = user.fullName;
-                document.getElementById('currentUserRole').textContent = user.role === 'admin' ? 'Administrador' : 'Usuario';
-                
-                if (user.role === 'admin') {
-                    document.getElementById('adminTabs').style.display = 'flex';
-                    switchTab('dashboard');
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const { data, error } = await supabase.from('users').select('*');
+                if (error) throw error;
+
+                const user = data.find(u => u.username === username && u.password === password);
+                if (user) {
+                    currentUser = user;
+                    showApp();
                 } else {
-                    document.getElementById('userTabs').style.display = 'flex';
-                    switchTab('my-leads');
+                    document.getElementById('loginAlert').innerHTML = '<div class="alert alert-error">Usuario o contraseña incorrectos</div>';
                 }
-                
-                renderApp();
-            } else {
-                alert('Usuario o contraseña incorrectos');
+            } catch (error) {
+                console.error(error);
+                document.getElementById('loginAlert').innerHTML = '<div class="alert alert-error">Error: ' + error.message + '</div>';
             }
         });
 
-        // Logout
-        function logout() {
-            currentUser = null;
-            document.getElementById('loginScreen').style.display = 'flex';
-            document.getElementById('appContainer').classList.remove('active');
-            document.getElementById('loginForm').reset();
-        }
-
-        // Switch tabs
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        async function showApp() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('app').classList.add('active');
+            document.getElementById('userInfo').textContent = currentUser.fullname + ' (' + currentUser.role + ')';
             
-            event.target.classList.add('active');
-            document.getElementById(`${tabName}-tab`).classList.add('active');
-            document.getElementById('loadingState').style.display = 'none';
-            
-            renderApp();
-        }
-
-        // Render app
-        function renderApp() {
-            if (!currentUser) return;
-            
-            if (currentUser.role === 'admin') {
-                renderDashboard();
-                renderUsers();
-                renderAllLeads();
+            if (currentUser.role !== 'admin') {
+                document.getElementById('usersBtn').style.display = 'none';
             }
-            renderMyLeads();
-            renderTasks();
+
+            await loadData();
         }
 
-        // Dashboard (Admin)
-        function renderDashboard() {
+        async function loadData() {
+            try {
+                const [usersRes, leadsRes, tasksRes] = await Promise.all([
+                    supabase.from('users').select('*'),
+                    supabase.from('leads').select('*'),
+                    supabase.from('tasks').select('*')
+                ]);
+
+                users = usersRes.data || [];
+                leads = leadsRes.data || [];
+                tasks = tasksRes.data || [];
+
+                updateStats();
+                renderUsers();
+                renderLeads();
+                renderTasks();
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+        }
+
+        function updateStats() {
             document.getElementById('totalUsers').textContent = users.length;
             document.getElementById('totalLeads').textContent = leads.length;
-            document.getElementById('qualifiedLeads').textContent = leads.filter(l => l.status === 'qualified').length;
-            document.getElementById('pendingTasksCount').textContent = tasks.filter(t => t.status === 'pending').length;
-            
-            const activity = document.getElementById('recentActivity');
-            const recentLeads = leads.slice(-5).reverse();
-            
-            if (recentLeads.length === 0) {
-                activity.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>No hay actividad reciente</p></div>';
-            } else {
-                activity.innerHTML = recentLeads.map(lead => {
-                    const assignedUser = users.find(u => u.id === lead.assignedUserId);
-                    return `
-                        <div class="lead-item">
-                            <div><strong>${lead.name}</strong> - ${lead.company || 'Sin empresa'}</div>
-                            <div style="font-size: 13px; color: var(--gray-600); margin-top: 4px;">
-                                Asignado a: ${assignedUser ? assignedUser.fullName : 'Sin asignar'}
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            }
+            document.getElementById('totalTasks').textContent = tasks.length;
         }
 
-        // Users Management
         function renderUsers() {
-            const tbody = document.getElementById('usersTableBody');
-            
-            tbody.innerHTML = users.map(user => {
-                const userLeads = leads.filter(l => l.assignedUserId === user.id).length;
-                const isFirstAdmin = users[0]?.id === user.id && user.role === 'admin';
-                return `
-                    <tr>
-                        <td><strong>${user.username}</strong></td>
-                        <td>${user.fullName}</td>
-                        <td>${user.email || '-'}</td>
-                        <td><span class="badge badge-${user.role}">${user.role === 'admin' ? 'Admin' : 'Usuario'}</span></td>
-                        <td>${userLeads}</td>
-                        <td>
-                            ${!isFirstAdmin ? `<button class="btn btn-small btn-danger" onclick="deleteUser('${user.id}')">Eliminar</button>` : '-'}
-                        </td>
-                    </tr>
-                `;
-            }).join('');
+            const tbody = document.getElementById('usersTable');
+            tbody.innerHTML = users.map(u => `
+                <tr>
+                    <td>${u.username}</td>
+                    <td>${u.fullname}</td>
+                    <td>${u.email || '-'}</td>
+                    <td>${u.role}</td>
+                    <td><button class="btn-small" onclick="deleteUser(${u.id})">Eliminar</button></td>
+                </tr>
+            `).join('');
         }
 
-        // User Modal
+        function renderLeads() {
+            const tbody = document.getElementById('leadsTable');
+            tbody.innerHTML = leads.map(l => `
+                <tr>
+                    <td>${l.name}</td>
+                    <td>${l.email}</td>
+                    <td>${l.phone || '-'}</td>
+                    <td>${l.status}</td>
+                    <td><button class="btn-small" onclick="deleteLead(${l.id})">Eliminar</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function renderTasks() {
+            const tbody = document.getElementById('tasksTable');
+            tbody.innerHTML = tasks.map(t => `
+                <tr>
+                    <td>${t.title}</td>
+                    <td>${t.description || '-'}</td>
+                    <td>${t.status}</td>
+                    <td>
+                        <button class="btn-small" onclick="toggleTask(${t.id}, '${t.status}')">${t.status === 'pendiente' ? 'Completar' : 'Reabrir'}</button>
+                        <button class="btn-small" onclick="deleteTask(${t.id})">Eliminar</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function showView(view, button) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+            document.getElementById(view).classList.add('active');
+            if (button) button.classList.add('active');
+        }
+
         function openUserModal() {
             document.getElementById('userModal').classList.add('active');
         }
 
-        function closeUserModal() {
-            document.getElementById('userModal').classList.remove('active');
-            document.getElementById('userForm').reset();
+        function openLeadModal() {
+            document.getElementById('leadModal').classList.add('active');
+        }
+
+        function openTaskModal() {
+            document.getElementById('taskModal').classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
         }
 
         document.getElementById('userForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            const newUser = {
-                username: document.getElementById('userName').value,
-                password: document.getElementById('userPassword').value,
-                fullName: document.getElementById('userFullName').value,
-                email: document.getElementById('userEmail').value,
-                role: document.getElementById('userRole').value,
-                createdAt: new Date().toISOString()
-            };
-            
-            await db.ref('users').push().set(newUser);
-            closeUserModal();
+            try {
+                const { error } = await supabase.from('users').insert([{
+                    username: document.getElementById('newUsername').value,
+                    password: document.getElementById('newPassword').value,
+                    fullname: document.getElementById('newFullname').value,
+                    email: document.getElementById('newEmail').value,
+                    role: document.getElementById('newRole').value
+                }]);
+                if (error) throw error;
+                await loadData();
+                closeModal('userModal');
+                e.target.reset();
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
         });
-
-        async function deleteUser(id) {
-            if (confirm('¿Eliminar este usuario? Sus leads quedarán sin asignar.')) {
-                await db.ref(`users/${id}`).remove();
-                
-                // Desasignar leads del usuario eliminado
-                leads.forEach(async (lead) => {
-                    if (lead.assignedUserId === id) {
-                        await db.ref(`leads/${lead.id}`).update({ assignedUserId: null });
-                    }
-                });
-            }
-        }
-
-        // Leads Management
-        function openLeadModal() {
-            updateLeadUserOptions();
-            document.getElementById('leadModal').classList.add('active');
-        }
-
-        function closeLeadModal() {
-            document.getElementById('leadModal').classList.remove('active');
-            document.getElementById('leadForm').reset();
-        }
-
-        function updateLeadUserOptions() {
-            const select = document.getElementById('leadAssignedUser');
-            const filterSelect = document.getElementById('leadUserFilter');
-            
-            const options = users.filter(u => u.role !== 'admin' || currentUser.role === 'admin')
-                .map(u => `<option value="${u.id}">${u.fullName}</option>`).join('');
-            
-            select.innerHTML = '<option value="">-- Seleccionar --</option>' + options;
-            
-            if (filterSelect) {
-                filterSelect.innerHTML = '<option value="">Todos los usuarios</option>' + 
-                    users.map(u => `<option value="${u.id}">${u.fullName}</option>`).join('');
-            }
-            
-            if (currentUser.role !== 'admin') {
-                document.getElementById('assignUserGroup').style.display = 'none';
-            }
-        }
 
         document.getElementById('leadForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            let assignedUserId = document.getElementById('leadAssignedUser').value;
-            
-            if (currentUser.role !== 'admin') {
-                assignedUserId = currentUser.id;
+            try {
+                const { error } = await supabase.from('leads').insert([{
+                    name: document.getElementById('leadName').value,
+                    email: document.getElementById('leadEmail').value,
+                    phone: document.getElementById('leadPhone').value,
+                    status: document.getElementById('leadStatus').value,
+                    assigned_to: currentUser.id
+                }]);
+                if (error) throw error;
+                await loadData();
+                closeModal('leadModal');
+                e.target.reset();
+            } catch (error) {
+                alert('Error: ' + error.message);
             }
-            
-            const newLead = {
-                name: document.getElementById('leadName').value,
-                company: document.getElementById('leadCompany').value,
-                email: document.getElementById('leadEmail').value,
-                phone: document.getElementById('leadPhone').value,
-                assignedUserId: assignedUserId || null,
-                status: document.getElementById('leadStatus').value,
-                notes: document.getElementById('leadNotes').value,
-                createdBy: currentUser.id,
-                createdAt: new Date().toISOString()
-            };
-            
-            await db.ref('leads').push().set(newLead);
-            closeLeadModal();
         });
-
-        function renderAllLeads() {
-            const container = document.getElementById('allLeadsList');
-            const filterUserId = document.getElementById('leadUserFilter')?.value;
-            
-            let filteredLeads = leads;
-            if (filterUserId) {
-                filteredLeads = leads.filter(l => l.assignedUserId === filterUserId);
-            }
-            
-            if (filteredLeads.length === 0) {
-                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👤</div><p>No hay leads registrados</p></div>';
-                return;
-            }
-            
-            container.innerHTML = filteredLeads.map(lead => {
-                const assignedUser = users.find(u => u.id === lead.assignedUserId);
-                return `
-                    <div class="lead-item">
-                        <div class="lead-header">
-                            <div>
-                                <div class="lead-name">${lead.name}</div>
-                                ${lead.company ? `<div class="lead-company">${lead.company}</div>` : ''}
-                                <div class="lead-info">📧 ${lead.email}</div>
-                                ${lead.phone ? `<div class="lead-info">📱 ${lead.phone}</div>` : ''}
-                                <div class="lead-info" style="margin-top: 8px;">
-                                    <strong>Asignado a:</strong> ${assignedUser ? assignedUser.fullName : 'Sin asignar'}
-                                </div>
-                            </div>
-                            <span class="badge badge-${lead.status}">${getStatusLabel(lead.status)}</span>
-                        </div>
-                        <div class="lead-actions">
-                            <button class="btn btn-small btn-danger" onclick="deleteLead('${lead.id}')">Eliminar</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function renderMyLeads() {
-            const container = document.getElementById('myLeadsList');
-            const myLeads = leads.filter(l => l.assignedUserId === currentUser.id || (currentUser.role === 'admin' && !l.assignedUserId));
-            
-            if (myLeads.length === 0) {
-                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👤</div><p>No tienes leads asignados</p></div>';
-                return;
-            }
-            
-            container.innerHTML = myLeads.map(lead => `
-                <div class="lead-item">
-                    <div class="lead-header">
-                        <div>
-                            <div class="lead-name">${lead.name}</div>
-                            ${lead.company ? `<div class="lead-company">${lead.company}</div>` : ''}
-                            <div class="lead-info">📧 ${lead.email}</div>
-                            ${lead.phone ? `<div class="lead-info">📱 ${lead.phone}</div>` : ''}
-                            ${lead.notes ? `<div class="lead-info" style="margin-top: 8px;">${lead.notes}</div>` : ''}
-                        </div>
-                        <span class="badge badge-${lead.status}">${getStatusLabel(lead.status)}</span>
-                    </div>
-                    <div class="lead-actions">
-                        <button class="btn btn-small btn-danger" onclick="deleteLead('${lead.id}')">Eliminar</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        async function deleteLead(id) {
-            if (confirm('¿Eliminar este lead?')) {
-                await db.ref(`leads/${id}`).remove();
-            }
-        }
-
-        function getStatusLabel(status) {
-            const labels = { 'new': 'Nuevo', 'contacted': 'Contactado', 'qualified': 'Calificado' };
-            return labels[status] || status;
-        }
-
-        // Tasks
-        function openTaskModal() {
-            updateTaskLeadOptions();
-            document.getElementById('taskModal').classList.add('active');
-        }
-
-        function closeTaskModal() {
-            document.getElementById('taskModal').classList.remove('active');
-            document.getElementById('taskForm').reset();
-        }
-
-        function updateTaskLeadOptions() {
-            const select = document.getElementById('taskLead');
-            const myLeads = leads.filter(l => l.assignedUserId === currentUser.id || currentUser.role === 'admin');
-            
-            select.innerHTML = '<option value="">-- Seleccionar --</option>' +
-                myLeads.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
-        }
 
         document.getElementById('taskForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            const leadId = document.getElementById('taskLead').value;
-            const lead = leads.find(l => l.id === leadId);
-            
-            const newTask = {
-                title: document.getElementById('taskTitle').value,
-                leadId: leadId || null,
-                leadName: lead ? lead.name : '',
-                date: document.getElementById('taskDate').value,
-                description: document.getElementById('taskDescription').value,
-                userId: currentUser.id,
-                status: 'pending',
-                createdAt: new Date().toISOString()
-            };
-            
-            await db.ref('tasks').push().set(newTask);
-            closeTaskModal();
+            try {
+                const { error } = await supabase.from('tasks').insert([{
+                    title: document.getElementById('taskTitle').value,
+                    description: document.getElementById('taskDesc').value,
+                    status: 'pendiente',
+                    user_id: currentUser.id
+                }]);
+                if (error) throw error;
+                await loadData();
+                closeModal('taskModal');
+                e.target.reset();
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
         });
 
-        function renderTasks() {
-            const container = document.getElementById('tasksList');
-            const myTasks = tasks.filter(t => t.userId === currentUser.id);
-            
-            if (myTasks.length === 0) {
-                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p>No tienes tareas pendientes</p></div>';
-                return;
+        async function deleteUser(id) {
+            if (confirm('¿Eliminar usuario?')) {
+                await supabase.from('users').delete().eq('id', id);
+                await loadData();
             }
-            
-            const sortedTasks = myTasks.sort((a, b) => {
-                if (a.status === 'completed' && b.status !== 'completed') return 1;
-                if (a.status !== 'completed' && b.status === 'completed') return -1;
-                return 0;
-            });
-            
-            container.innerHTML = sortedTasks.map(task => `
-                <div class="lead-item" style="${task.status === 'completed' ? 'opacity: 0.6;' : ''}">
-                    <div class="lead-header">
-                        <div>
-                            <div class="lead-name" style="${task.status === 'completed' ? 'text-decoration: line-through;' : ''}">${task.title}</div>
-                            ${task.leadName ? `<div class="lead-company">Lead: ${task.leadName}</div>` : ''}
-                            ${task.date ? `<div class="lead-info">📅 ${formatDate(task.date)}</div>` : ''}
-                            ${task.description ? `<div class="lead-info" style="margin-top: 8px;">${task.description}</div>` : ''}
-                        </div>
-                        <span class="badge badge-${task.status}">${task.status === 'pending' ? 'Pendiente' : 'Completada'}</span>
-                    </div>
-                    <div class="lead-actions">
-                        ${task.status === 'pending' ? 
-                            `<button class="btn btn-small btn-success" onclick="completeTask('${task.id}')">✓ Completar</button>` : 
-                            `<button class="btn btn-small btn-secondary" onclick="uncompleteTask('${task.id}')">↺ Reabrir</button>`
-                        }
-                        <button class="btn btn-small btn-danger" onclick="deleteTask('${task.id}')">Eliminar</button>
-                    </div>
-                </div>
-            `).join('');
         }
 
-        async function completeTask(id) {
-            await db.ref(`tasks/${id}`).update({ status: 'completed' });
-        }
-
-        async function uncompleteTask(id) {
-            await db.ref(`tasks/${id}`).update({ status: 'pending' });
+        async function deleteLead(id) {
+            if (confirm('¿Eliminar lead?')) {
+                await supabase.from('leads').delete().eq('id', id);
+                await loadData();
+            }
         }
 
         async function deleteTask(id) {
-            if (confirm('¿Eliminar esta tarea?')) {
-                await db.ref(`tasks/${id}`).remove();
+            if (confirm('¿Eliminar tarea?')) {
+                await supabase.from('tasks').delete().eq('id', id);
+                await loadData();
             }
         }
 
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+        async function toggleTask(id, currentStatus) {
+            const newStatus = currentStatus === 'pendiente' ? 'completada' : 'pendiente';
+            await supabase.from('tasks').update({ status: newStatus }).eq('id', id);
+            await loadData();
         }
 
-        // Close modals
-        document.querySelectorAll('.modal').forEach(modal => {
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) modal.classList.remove('active');
-            });
-        });
-
-        // Initialize
-        window.addEventListener('load', () => {
-            initFirebase();
-        });
+        function logout() {
+            location.reload();
+        }
     </script>
 </body>
 </html>
