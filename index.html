@@ -350,6 +350,12 @@
                         <option value="calificado">Calificado</option>
                     </select>
                 </div>
+                <div class="form-group" id="leadUserSelectorGroup" style="display: none;">
+                    <label>Asignar a:</label>
+                    <select id="leadAssignToUser" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                        <option value="">-- Seleccionar Usuario --</option>
+                    </select>
+                </div>
                 <button type="submit">Crear</button>
                 <button type="button" onclick="closeModal('leadModal')" style="background: #ccc; margin-top: 10px;">Cancelar</button>
             </form>
@@ -581,7 +587,27 @@
 
             window.openLeadModal = function() {
                 document.getElementById('leadModal').classList.add('active');
+                
+                // Mostrar selector de usuario solo para admins
+                if (currentUser.role === 'admin') {
+                    document.getElementById('leadUserSelectorGroup').style.display = 'block';
+                    loadUsersForLeadAssignment();
+                } else {
+                    document.getElementById('leadUserSelectorGroup').style.display = 'none';
+                }
             };
+
+            function loadUsersForLeadAssignment() {
+                const select = document.getElementById('leadAssignToUser');
+                select.innerHTML = '<option value="">-- Seleccionar Usuario --</option>';
+                select.innerHTML += '<option value="' + currentUser.id + '">Asignar a mí (' + currentUser.fullname + ')</option>';
+                
+                users.forEach(user => {
+                    if (user.id !== currentUser.id) {
+                        select.innerHTML += '<option value="' + user.id + '">' + user.fullname + ' (' + user.username + ')</option>';
+                    }
+                });
+            }
 
             window.openTaskModal = function() {
                 document.getElementById('taskModal').classList.add('active');
@@ -833,12 +859,23 @@
             document.getElementById('leadForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 try {
+                    // Determinar a quién asignar el lead
+                    let assignedUserId = currentUser.id;
+                    if (currentUser.role === 'admin') {
+                        const selectedUserId = document.getElementById('leadAssignToUser').value;
+                        if (!selectedUserId) {
+                            alert('Por favor selecciona un usuario para asignar el lead');
+                            return;
+                        }
+                        assignedUserId = parseInt(selectedUserId);
+                    }
+
                     const { error } = await db.from('leads').insert([{
                         name: document.getElementById('leadName').value,
                         email: document.getElementById('leadEmail').value,
                         phone: document.getElementById('leadPhone').value,
                         status: document.getElementById('leadStatus').value,
-                        assigned_to: currentUser.id
+                        assigned_to: assignedUserId
                     }]);
                     if (error) throw error;
                     await loadData();
